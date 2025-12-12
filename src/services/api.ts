@@ -9,6 +9,7 @@ const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'x-api-key': process.env.REACT_APP_API_KEY || 'dev-key-12345',
   },
 });
 
@@ -40,3 +41,41 @@ export const evaluationApi = {
 };
 
 export default apiClient;
+
+// Storage APIs for folders and uploads
+export const storageApi = {
+  createFolder: (name: string) =>
+    apiClient.post('/storage/folders', { name }),
+
+  listFolders: () =>
+    apiClient.get('/storage/folders'),
+
+  listFiles: (folder: string) =>
+    apiClient.get('/storage/files', { params: { folder } }),
+
+  uploadToFolder: (folder: string, files: File[]) => {
+    const formData = new FormData();
+    formData.append('folder', folder);
+    files.forEach(file => formData.append('files', file));
+    return apiClient.post('/storage/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  listRecommendations: (folder: string, document?: string) =>
+    apiClient.get('/storage/recommendations', { params: { folder, document } }),
+
+  decideRecommendations: (
+    folder: string,
+    document: string,
+    version: number,
+    acceptIds: string[],
+    rejectIds: string[]
+  ) => apiClient.post('/storage/recommendations/decision', {
+    folder,
+    document,
+    version,
+    acceptIds,
+    rejectIds,
+  }),
+};

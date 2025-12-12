@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PVARA AI - LinkedIn Announcement</title>
+    
+    <!-- LinkedIn Optimal Image Size: 1200x627 or 1200x1200 -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --pk-green: #01411C;
+            --pk-green-light: #006837;
+            --accent: #00C853;
+            --gold: #FFD700;
+            --white: #ffffff;
+        }
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #000a14 0%, #001824 50%, #002436 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        /* Main Card - LinkedIn optimized 1200x1200 square */
+        .linkedin-card {
+            width: 1200px;
+            height: 1200px;
+            background: linear-gradient(160deg, #000c18 0%, #001428 40%, #001d38 100%);
+            border-radius: 0;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 50px 100px rgba(0,0,0,0.5);
+        }
+        
+        /* Pakistan Flag Bar */
+        .pk-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, 
+                var(--pk-green) 0%, 
+                var(--pk-green) 75%, 
+                var(--white) 75%, 
+                var(--white) 100%
+            );
+            z-index: 10;
+        }
+        
+        .pk-bar-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, 
+                var(--pk-green) 0%, 
+                var(--pk-green) 75%, 
+                var(--white) 75%, 
+                var(--white) 100%
+            );
+            z-index: 10;
+        }
+        
+        /* Background Glow Effects */
+        .bg-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.3;
+            pointer-events: none;
+        }
+        
+        .bg-glow-1 {
+            top: -200px;
+            right: -200px;
+            background: var(--pk-green);
+        }
+        
+        .bg-glow-2 {
+            bottom: -200px;
+            left: -200px;
+            background: var(--accent);
+            opacity: 0.2;
+        }
+        
+        /* Content Container */
+        .content {
+            position: relative;
+            z-index: 5;
+            padding: 60px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .logo-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            background: white;
+            padding: 8px;
+            box-shadow: 0 10px 40px rgba(0,200,83,0.3);
+            border: 3px solid var(--gold);
+            object-fit: contain;
+        }
+        
+        .logo-text h1 {
+            font-size: 42px;
+            font-weight: 900;
+            color: white;
+            letter-spacing: -1px;
+        }
+        
+        .logo-text p {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        .live-badge {
+            background: linear-gradient(135deg, var(--gold), #FFA000);
+            color: #000;
+            padding: 12px 28px;
+            border-radius: 30px;
+            font-weight: 800;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 10px 30px rgba(255,215,0,0.4);
+        }
+        
+        /* Main Hero */
+        .hero {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .hero h2 {
+            font-size: 72px;
+            font-weight: 900;
+            line-height: 1.05;
+            margin-bottom: 25px;
+            letter-spacing: -3px;
+        }
+        
+        .hero h2 .white { color: white; }
+        
+        .hero h2 .gradient {
+            background: linear-gradient(90deg, var(--accent), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .hero p {
+            font-size: 24px;
+            color: rgba(255,255,255,0.7);
+            max-width: 900px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+        
+        /* Center Visualization */
+        .visualization {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        /* AI Core */
+        .ai-hub {
+            position: relative;
+            width: 280px;
+            height: 280px;
+        }
+        
+        .ai-ring {
+            position: absolute;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid rgba(0,200,83,0.2);
+        }
+        
+        .ring-1 { width: 280px; height: 280px; border-style: dashed; animation: spin 30s linear infinite; }
+        .ring-2 { width: 240px; height: 240px; border-color: rgba(0,200,83,0.3); animation: spin 20s linear infinite reverse; }
+        .ring-3 { width: 200px; height: 200px; border-style: dotted; animation: spin 15s linear infinite; }
+        
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        .ai-core {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(135deg, var(--pk-green), var(--accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 80px rgba(0,200,83,0.6);
+        }
+        
+        .ai-core span {
+            font-size: 70px;
+        }
+        
+        /* Floating Cards - Left Side */
+        .float-card {
+            position: absolute;
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            padding: 18px 22px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        
+        .float-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--pk-green), var(--accent));
+            border-radius: 16px 16px 0 0;
+        }
+        
+        .float-card .icon {
+            font-size: 32px;
+        }
+        
+        .float-card .text {
+            color: #333;
+        }
+        
+        .float-card .text h4 {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+        
+        .float-card .text p {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .card-1 { left: 60px; top: 50%; transform: translateY(-120%); }
+        .card-2 { left: 60px; top: 50%; transform: translateY(20%); }
+        .card-3 { right: 60px; top: 50%; transform: translateY(-120%); }
+        .card-4 { right: 60px; top: 50%; transform: translateY(20%); }
+        
+
+        
+        /* Features Row */
+        .features-row {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px 30px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+        }
+        
+        .feature .icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--pk-green), var(--accent));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .feature .text h4 {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 4px;
+        }
+        
+        .feature .text p {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .hashtags {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .hashtag {
+            background: rgba(0,200,83,0.15);
+            color: var(--accent);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        /* Connection Lines */
+        .connection-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .conn-line {
+            stroke: url(#connGradient);
+            stroke-width: 2;
+            fill: none;
+            stroke-dasharray: 8 4;
+            animation: flowDash 1.5s linear infinite;
+        }
+        
+        @keyframes flowDash {
+            to { stroke-dashoffset: -24; }
+        }
+        
+        /* Scale for preview */
+        @media (max-width: 1250px) {
+            .linkedin-card {
+                width: 100%;
+                height: auto;
+                aspect-ratio: 1;
+                max-width: 800px;
+            }
+            
+            .content { padding: 40px; }
+            .logo-img { width: 60px; height: 60px; }
+            .logo-text h1 { font-size: 32px; }
+            .hero h2 { font-size: 48px; }
+            .hero p { font-size: 18px; }
+            .ai-hub { width: 200px; height: 200px; }
+            .ai-core { width: 100px; height: 100px; }
+            .ai-core span { font-size: 45px; }
+            .ring-1 { width: 200px; height: 200px; }
+            .ring-2 { width: 170px; height: 170px; }
+            .ring-3 { width: 140px; height: 140px; }
+            .float-card { display: none; }
+            .scores { gap: 30px; }
+            .score-box .value { font-size: 36px; }
+            .features-row { flex-wrap: wrap; gap: 20px; }
+            .feature { padding: 15px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="linkedin-card">
+        <!-- Pakistan Flag Bars -->
+        <div class="pk-bar"></div>
+        <div class="pk-bar-bottom"></div>
+        
+        <!-- Background Glows -->
+        <div class="bg-glow bg-glow-1"></div>
+        <div class="bg-glow bg-glow-2"></div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo-section">
+                    <img src="pvara-logo.png" alt="PVARA" class="logo-img">
+                    <div class="logo-text">
+                        <h1>PVARA</h1>
+                        <p>Pakistan Virtual Assets Regulatory Authority</p>
+                    </div>
+                </div>
+                <div class="live-badge">🚀 Now Live</div>
+            </div>
+            
+            <!-- Hero -->
+            <div class="hero">
+                <h2>
+                    <span class="white">Introducing</span><br>
+                    <span class="gradient">AI-Powered</span><br>
+                    <span class="white">License Evaluation</span>
+                </h2>
+                <p>Objective • Transparent • Consistent Assessment for Every VASP Application</p>
+            </div>
+            
+            <!-- Visualization -->
+            <div class="visualization">
+                <!-- Connection Lines SVG -->
+                <svg class="connection-svg" viewBox="0 0 1200 400">
+                    <defs>
+                        <linearGradient id="connGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#00C853;stop-opacity:0.1" />
+                            <stop offset="50%" style="stop-color:#00C853;stop-opacity:0.8" />
+                            <stop offset="100%" style="stop-color:#00C853;stop-opacity:0.1" />
+                        </linearGradient>
+                    </defs>
+                    <path class="conn-line" d="M250,120 Q450,180 600,200" />
+                    <path class="conn-line" d="M250,280 Q450,220 600,200" />
+                    <path class="conn-line" d="M950,120 Q750,180 600,200" />
+                    <path class="conn-line" d="M950,280 Q750,220 600,200" />
+                </svg>
+                
+                <!-- Floating Cards -->
+                <div class="float-card card-1">
+                    <span class="icon">📋</span>
+                    <div class="text">
+                        <h4>AML/KYC Policy</h4>
+                        <p>Compliance Review</p>
+                    </div>
+                </div>
+                
+                <div class="float-card card-2">
+                    <span class="icon">🏢</span>
+                    <div class="text">
+                        <h4>Corporate Docs</h4>
+                        <p>Registration Verified</p>
+                    </div>
+                </div>
+                
+                <div class="float-card card-3">
+                    <span class="icon">💼</span>
+                    <div class="text">
+                        <h4>Business Plan</h4>
+                        <p>Strategy Analysis</p>
+                    </div>
+                </div>
+                
+                <div class="float-card card-4">
+                    <span class="icon">🔒</span>
+                    <div class="text">
+                        <h4>Security</h4>
+                        <p>Tech Assessment</p>
+                    </div>
+                </div>
+                
+                <!-- AI Hub -->
+                <div class="ai-hub">
+                    <div class="ai-ring ring-1"></div>
+                    <div class="ai-ring ring-2"></div>
+                    <div class="ai-ring ring-3"></div>
+                    <div class="ai-core">
+                        <span>🧠</span>
+                    </div>
+                </div>
+            </div>
+            
+
+            
+            <!-- Features -->
+            <div class="features-row">
+                <div class="feature">
+                    <div class="icon">⚖️</div>
+                    <div class="text">
+                        <h4>100% Objective</h4>
+                        <p>No Human Bias</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="icon">⚡</div>
+                    <div class="text">
+                        <h4>90% Faster</h4>
+                        <p>Minutes Not Weeks</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="icon">🎯</div>
+                    <div class="text">
+                        <h4>8 Dimensions</h4>
+                        <p>Comprehensive Check</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="icon">🔍</div>
+                    <div class="text">
+                        <h4>Transparent</h4>
+                        <p>Clear Rationale</p>
+                    </div>
+                </div>
+            </div>
+            
+
+        </div>
+    </div>
+</body>
+</html>

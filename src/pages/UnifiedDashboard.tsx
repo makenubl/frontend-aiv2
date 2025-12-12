@@ -5,6 +5,7 @@ import {
   FiClock, FiTrendingUp,
   FiZap, FiGlobe, FiChevronDown, FiFile
 } from 'react-icons/fi';
+import StorageManager from '../components/StorageManager';
 import { applicationsApi, ApplicationFolder, ComprehensiveEvaluation } from '../services/applications.api';
 import { NOCCreationPanel } from '../components/NOCCreationPanel';
 import { DocumentManagementPanel } from '../components/DocumentManagementPanel';
@@ -15,7 +16,7 @@ interface UnifiedDashboardProps {
   onLogout?: () => void;
 }
 
-type ActiveView = 'applications' | 'documents' | 'noc' | 'ai-bot' | 'settings';
+type ActiveView = 'applications' | 'documents' | 'noc' | 'ai-bot' | 'settings' | 'storage';
 
 export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) => {
   const [applications, setApplications] = useState<ApplicationFolder[]>([]);
@@ -136,6 +137,8 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
     { id: 'applications', label: 'Applications', icon: <FiHome />, badge: stats.total },
     { id: 'documents', label: 'Documents', icon: <FiFolder />, badge: null },
     { id: 'noc', label: 'No Objection Certificate', icon: <FiShield />, badge: stats.pending },
+    { id: 'ai-bot', label: 'AI Assistant', icon: <FiZap />, badge: null },
+    { id: 'storage', label: 'Storage', icon: <FiFolder />, badge: null },
     { id: 'settings', label: 'Settings', icon: <FiSettings />, badge: null },
   ];
 
@@ -178,6 +181,12 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
               applicationId="general"
               applicationName="General Inquiry"
             />
+          </div>
+        );
+      case 'storage':
+        return (
+          <div style={{ padding: 'var(--space-2xl)' }}>
+            <StorageManager />
           </div>
         );
       case 'settings':
