@@ -97,16 +97,22 @@ const StorageManager: React.FC = () => {
     try {
       setLoading(true);
       await storageApi.deleteFolder(folderToDelete, userEmail);
-      await refreshFolders();
+      
+      // Optimistically remove from UI
+      setFolders(prev => prev.filter(f => f !== folderToDelete));
+      
       if (selectedFolder === folderToDelete) {
         setSelectedFolder('');
         setTrail([]);
       }
+      
       toast.success(`Folder "${folderToDelete}" deleted successfully`);
       setShowDeleteFolderModal(false);
       setFolderToDelete('');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to delete folder');
+      // Refresh on error to stay in sync
+      await refreshFolders();
     } finally {
       setLoading(false);
     }
