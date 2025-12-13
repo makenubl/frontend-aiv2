@@ -79,7 +79,7 @@ const StorageManager: React.FC = () => {
       await storageApi.createFolder(name);
       await refreshFolders();
       setSelectedFolder(name);
-      toast.success(\`Folder "\${name}" created successfully\`);
+      toast.success(`Folder "${name}" created successfully`);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to create folder');
     } finally {
@@ -102,7 +102,7 @@ const StorageManager: React.FC = () => {
         setSelectedFolder('');
         setTrail([]);
       }
-      toast.success(\`Folder "\${folderToDelete}" deleted successfully\`);
+      toast.success(`Folder "${folderToDelete}" deleted successfully`);
       setShowDeleteFolderModal(false);
       setFolderToDelete('');
     } catch (error: any) {
@@ -123,7 +123,7 @@ const StorageManager: React.FC = () => {
       setLoading(true);
       await storageApi.deleteFile(selectedFolder, fileToDelete.doc, fileToDelete.version, userEmail);
       await refreshTrail();
-      toast.success(\`File deleted successfully\`);
+      toast.success(`File deleted successfully`);
       setShowDeleteFileModal(false);
       setFileToDelete(null);
     } catch (error: any) {
@@ -141,7 +141,7 @@ const StorageManager: React.FC = () => {
     }
     for (const file of filesToUpload) {
       if (file.size > 50 * 1024 * 1024) {
-        toast.error(\`File \${file.name} exceeds 50MB limit\`);
+        toast.error(`File ${file.name} exceeds 50MB limit`);
         return;
       }
     }
@@ -150,7 +150,7 @@ const StorageManager: React.FC = () => {
       await storageApi.uploadToFolder(selectedFolder, filesToUpload);
       setFilesToUpload([]);
       await refreshTrail();
-      toast.success(\`\${filesToUpload.length} file(s) uploaded successfully\`);
+      toast.success(`${filesToUpload.length} file(s) uploaded successfully`);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to upload files');
     } finally {
@@ -159,7 +159,7 @@ const StorageManager: React.FC = () => {
   };
 
   const onAcceptReject = async (entry: TrailEntry) => {
-    const key = \`\${entry.applicationId}_\${entry.documentName}_\${entry.version}\`;
+    const key = `${entry.applicationId}_${entry.documentName}_${entry.version}`;
     const selected = selection[key] || {};
     const chosenIds = Object.keys(selected).filter(id => selected[id]);
     const pendingIds = entry.recommendations.filter(r => r.status === 'pending').map(r => r.id);
@@ -170,14 +170,14 @@ const StorageManager: React.FC = () => {
       await storageApi.decideRecommendations(entry.applicationId, entry.documentName, entry.version, toAccept, toReject);
       await refreshTrail();
       setSelection(prev => ({ ...prev, [key]: {} }));
-      toast.success(\`\${effectiveIds.length} recommendation(s) accepted\`);
+      toast.success(`${effectiveIds.length} recommendation(s) accepted`);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to accept recommendations');
     }
   };
 
   const toggleSelection = (entry: TrailEntry, recId: string) => {
-    const key = \`\${entry.applicationId}_\${entry.documentName}_\${entry.version}\`;
+    const key = `${entry.applicationId}_${entry.documentName}_${entry.version}`;
     setSelection(prev => ({
       ...prev,
       [key]: {
@@ -461,7 +461,7 @@ const StorageManager: React.FC = () => {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {trail.map((entry) => {
-                      const key = \`\${entry.applicationId}_\${entry.documentName}_\${entry.version}\`;
+                      const key = `${entry.applicationId}_${entry.documentName}_${entry.version}`;
                       return (
                         <div
                           key={key}
@@ -518,7 +518,7 @@ const StorageManager: React.FC = () => {
                                       padding: '12px',
                                       background: '#ffffff',
                                       borderRadius: '8px',
-                                      border: \`2px solid \${getStatusColor(rec.status)}20\`,
+                                      border: `2px solid ${getStatusColor(rec.status)}20`,
                                       display: 'flex',
                                       alignItems: 'center',
                                       gap: '12px',
@@ -597,7 +597,7 @@ const StorageManager: React.FC = () => {
                                 >
                                   <FiCheck size={16} />
                                   Accept {Object.keys(selection[key] || {}).filter(id => selection[key][id]).length > 0 
-                                    ? \`Selected (\${Object.keys(selection[key]).filter(id => selection[key][id]).length})\`
+                                    ? `Selected (${Object.keys(selection[key]).filter(id => selection[key][id]).length})`
                                     : 'All Pending'}
                                 </button>
                               )}
