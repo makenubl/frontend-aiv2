@@ -38,11 +38,6 @@ export const evaluationApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
-  deleteFolder: (folder: string, requesterEmail: string) =>
-    apiClient.delete('/storage/folders', { data: { folder, requesterEmail } }),
-
-  deleteFile: (folder: string, document: string, version: number, requesterEmail: string) =>
-    apiClient.delete('/storage/files', { data: { folder, document, version, requesterEmail } }),
 };
 
 export default apiClient;
@@ -83,9 +78,13 @@ export const storageApi = {
     acceptIds,
     rejectIds,
   }),
-  deleteFolder: (folder: string, requesterEmail: string) =>
-    apiClient.delete('/storage/folders', { data: { folder, requesterEmail } }),
 
-  deleteFile: (folder: string, document: string, version: number, requesterEmail: string) =>
-    apiClient.delete('/storage/files', { data: { folder, document, version, requesterEmail } }),
+  chatAboutRecommendations: (folder: string, document: string | undefined, message: string) =>
+    apiClient.post('/storage/chat', { folder, document, message }),
+
+  getStorageChat: (folder: string, document?: string) =>
+    apiClient.get('/storage/chat', { params: { folder, document } }),
+
+  inviteToFolder: (folder: string, email: string, role: string) =>
+    apiClient.post('/storage/access/invite', { folder, email, role }),
 };
