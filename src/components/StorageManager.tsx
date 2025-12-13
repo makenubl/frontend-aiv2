@@ -36,6 +36,8 @@ const StorageManager: React.FC = () => {
     try {
       setLoading(true);
       const { data } = await storageApi.listFolders();
+      // Backend returns empty on Vercel (no persistent storage)
+      // Keep local state; deleted folders removed optimistically
       setFolders(data.folders || []);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to load folders');
