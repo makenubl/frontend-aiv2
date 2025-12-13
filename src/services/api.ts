@@ -5,6 +5,8 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || (
   process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api'
 );
 
+console.log('🔗 API Base URL:', API_BASE_URL);
+
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -12,6 +14,16 @@ const apiClient: AxiosInstance = axios.create({
     'x-api-key': process.env.REACT_APP_API_KEY || 'dev-key-12345',
   },
 });
+
+// Separate client for file uploads (without Content-Type header so axios can set multipart boundary)
+const uploadClient: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'x-api-key': process.env.REACT_APP_API_KEY || 'dev-key-12345',
+  },
+});
+
+console.log('✅ Upload client configured for:', API_BASE_URL);
 
 export const evaluationApi = {
   evaluateApplication: (data: any) =>
@@ -34,9 +46,7 @@ export const evaluationApi = {
     if (meta?.vendor) formData.append('vendor', meta.vendor);
     if (meta?.version) formData.append('version', meta.version);
     if (meta?.description) formData.append('description', meta.description);
-    return apiClient.post('/evaluation/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    return uploadClient.post('/evaluation/upload', formData);
   },
 };
 
@@ -57,11 +67,20 @@ export const storageApi = {
     apiClient.get('/storage/files', { params: { folder } }),
 
   uploadToFolder: (folder: string, files: File[]) => {
+    console.log('📤 uploadToFolder called with:', { folder, fileCount: files.length, fileNames: files.map(f => f.name) });
     const formData = new FormData();
     formData.append('folder', folder);
-    files.forEach(file => formData.append('files', file));
-    return apiClient.post('/storage/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    files.forEach(file => {
+      console.log('  Adding file:', file.name, 'Size:', file.size, 'Type:', file.type);
+      formData.append('files', file);
+    });
+    console.log('📨 Posting to /storage/upload');
+    return uploadClient.post('/storage/upload', formData).then(response => {
+      console.log('✅ Upload response received:', response.status, response.data);
+      return response;
+    }).catch(error => {
+      console.error('❌ Upload error:', error.response?.status, error.response?.data || error.message);
+      throw error;
     });
   },
 
@@ -83,7 +102,12 @@ export const storageApi = {
   }),
 
   chatAboutRecommendations: (folder: string, document: string | undefined, message: string) =>
-    apiClient.post('/storage/chat', { folder, document, message }),
+    apiClient.post('/storage/chat', { folder, document, message }, {
+      headers: {
+        'x-user-role': 'owner',
+        'x-user-email': 'user@example.com'
+      }
+    }),
 
   getStorageChat: (folder: string, document?: string) =>
     apiClient.get('/storage/chat', { params: { folder, document } }),
