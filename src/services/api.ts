@@ -47,6 +47,9 @@ export const storageApi = {
   createFolder: (name: string) =>
     apiClient.post('/storage/folders', { name }),
 
+  deleteFolder: (folder: string) =>
+    apiClient.delete('/storage/folders', { data: { folder, requesterEmail: 'user@example.com' } }),
+
   listFolders: () =>
     apiClient.get('/storage/folders'),
 

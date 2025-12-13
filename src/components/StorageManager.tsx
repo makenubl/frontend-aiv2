@@ -54,6 +54,19 @@ const StorageManager: React.FC = () => {
     setSelectedFolder(name);
   };
 
+  const onDeleteFolder = async () => {
+    if (!selectedFolder) return;
+    if (!confirm(`Delete folder "${selectedFolder}" and all its contents?`)) return;
+    try {
+      await storageApi.deleteFolder(selectedFolder);
+      setSelectedFolder('');
+      setTrail([]);
+      await refreshFolders();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to delete folder');
+    }
+  };
+
   const onUpload = async () => {
     if (!selectedFolder || !filesToUpload.length) return;
     await storageApi.uploadToFolder(selectedFolder, filesToUpload);
@@ -96,8 +109,9 @@ const StorageManager: React.FC = () => {
     <div style={{ padding: 16 }}>
       <h3>Storage Manager</h3>
 
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
         <button onClick={onCreateFolder}>Create Folder</button>
+        <button onClick={onDeleteFolder} disabled={!selectedFolder} style={{ background: '#ef4444', color: 'white' }}>Delete Folder</button>
       </div>
 
       <div style={{ marginBottom: 12 }}>
