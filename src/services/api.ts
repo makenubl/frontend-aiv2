@@ -38,6 +38,11 @@ export const evaluationApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  deleteFolder: (folder: string, requesterEmail: string) =>
+    apiClient.delete('/storage/folders', { data: { folder, requesterEmail } }),
+
+  deleteFile: (folder: string, document: string, version: number, requesterEmail: string) =>
+    apiClient.delete('/storage/files', { data: { folder, document, version, requesterEmail } }),
 };
 
 export default apiClient;
@@ -78,4 +83,9 @@ export const storageApi = {
     acceptIds,
     rejectIds,
   }),
+  deleteFolder: (folder: string, requesterEmail: string) =>
+    apiClient.delete('/storage/folders', { data: { folder, requesterEmail } }),
+
+  deleteFile: (folder: string, document: string, version: number, requesterEmail: string) =>
+    apiClient.delete('/storage/files', { data: { folder, document, version, requesterEmail } }),
 };
