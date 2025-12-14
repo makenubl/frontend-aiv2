@@ -478,6 +478,38 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
                       <span style={{ fontSize: 14 }}>{isSelected ? '✓' : '○'}</span>
                       <span style={{ flex: 1 }}>{f}</span>
                     </div>
+                    {/* File Metadata - shown when selected */}
+                    {isSelected && (
+                      <div style={{ 
+                        marginTop: 8, 
+                        paddingTop: 8, 
+                        borderTop: '1px solid #1f2937',
+                        fontSize: 10,
+                        color: '#64748b'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span>📅 Created:</span>
+                          <span style={{ color: '#94a3b8' }}>{new Date().toLocaleDateString()}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span>📝 Modified:</span>
+                          <span style={{ color: '#94a3b8' }}>{new Date().toLocaleDateString()}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span>👤 Owner:</span>
+                          <span style={{ color: '#94a3b8' }}>System</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>📊 Status:</span>
+                          <span style={{ 
+                            color: '#22c55e',
+                            background: 'rgba(34, 197, 94, 0.1)',
+                            padding: '1px 6px',
+                            borderRadius: 4
+                          }}>Active</span>
+                        </div>
+                      </div>
+                    )}
                   </button>
                 );
               })}
@@ -485,49 +517,85 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
             
             {/* File Actions */}
             {filesToUpload.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, paddingTop: 8, borderTop: '1px solid #1f2937' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 8, borderTop: '1px solid #1f2937' }}>
+                {/* Chat with Document Button - Full Width */}
                 <button
-                  onClick={async () => {
-                    const fileName = filesToUpload[0].name;
-                    try {
-                      const response = await fetch(`http://localhost:3001/api/storage/download?folder=${selectedFolder}&file=${fileName}`);
-                      const blob = await response.blob();
-                      const url = window.URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = fileName;
-                      a.click();
-                      window.URL.revokeObjectURL(url);
-                    } catch (e) {
-                      alert('Error downloading file');
-                    }
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const fileName = filesToUpload[0]?.name || 'document';
+                    const minimalEntry: TrailEntry = {
+                      documentName: fileName,
+                      version: 1,
+                      recommendations: [],
+                      createdAt: new Date().toISOString()
+                    };
+                    openChatWithDocument(minimalEntry);
                   }}
                   style={{
-                    flex: 1,
-                    background: '#3b82f6',
-                    color: 'white',
+                    width: '100%',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
                     border: 'none',
-                    padding: '10px',
-                    borderRadius: 6,
-                    cursor: 'pointer',
+                    borderRadius: 8,
+                    padding: '12px 16px',
+                    color: 'white',
                     fontWeight: 600,
-                    fontSize: 12
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    zIndex: 10,
+                    position: 'relative'
                   }}
                 >
-                  ⬇ Download
+                  💬 Chat with Document
                 </button>
-                <button
-                  onClick={async () => {
-                    const fileName = filesToUpload[0].name;
-                    if (!window.confirm(`Delete "${fileName}"?`)) return;
-                    try {
-                      await storageApi.deleteFile(selectedFolder, fileName);
-                      setFilesToUpload([]);
-                      await refreshFiles();
-                      setStatusMessage({ text: 'File deleted', type: 'success' });
-                    } catch (e: any) {
-                      setStatusMessage({ text: e.response?.data?.error || 'Error deleting file', type: 'error' });
-                    }
+                
+                {/* Download and Delete Row */}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={async () => {
+                      const fileName = filesToUpload[0].name;
+                      try {
+                        const response = await fetch(`http://localhost:3001/api/storage/download?folder=${selectedFolder}&file=${fileName}`);
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileName;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                      } catch (e) {
+                        alert('Error downloading file');
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      background: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      padding: '10px',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: 12
+                    }}
+                  >
+                    ⬇ Download
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const fileName = filesToUpload[0].name;
+                      if (!window.confirm(`Delete "${fileName}"?`)) return;
+                      try {
+                        await storageApi.deleteFile(selectedFolder, fileName);
+                        setFilesToUpload([]);
+                        await refreshFiles();
+                        setStatusMessage({ text: 'File deleted', type: 'success' });
+                      } catch (e: any) {
+                        setStatusMessage({ text: e.response?.data?.error || 'Error deleting file', type: 'error' });
+                      }
                   }}
                   style={{
                     flex: 1,
@@ -543,6 +611,7 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
                 >
                   🗑 Delete
                 </button>
+                </div>
               </div>
             )}
           </div>
