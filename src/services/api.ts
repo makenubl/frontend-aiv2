@@ -120,4 +120,16 @@ export const storageApi = {
 
   deleteFile: (folder: string, fileName: string) =>
     apiClient.delete('/storage/files', { data: { folder, fileName } }),
+
+  downloadFile: async (folder: string, fileName: string) => {
+    const response = await apiClient.get('/storage/download', {
+      params: { folder, file: fileName },
+      responseType: 'blob'
+    });
+    return response;
+  },
+
+  getDownloadUrl: (folder: string, fileName: string) => {
+    return `${API_BASE_URL}/storage/download?folder=${encodeURIComponent(folder)}&file=${encodeURIComponent(fileName)}`;
+  },
 };

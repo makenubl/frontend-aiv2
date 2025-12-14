@@ -617,16 +617,20 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
                     onClick={async () => {
                       const fileName = filesToUpload[0].name;
                       try {
-                        const response = await fetch(`http://localhost:3001/api/storage/download?folder=${selectedFolder}&file=${fileName}`);
-                        const blob = await response.blob();
+                        const response = await storageApi.downloadFile(selectedFolder, fileName);
+                        const blob = new Blob([response.data]);
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
                         a.download = fileName;
+                        document.body.appendChild(a);
                         a.click();
+                        document.body.removeChild(a);
                         window.URL.revokeObjectURL(url);
+                        setStatusMessage({ text: 'File downloaded successfully', type: 'success' });
                       } catch (e) {
-                        alert('Error downloading file');
+                        console.error('Download error:', e);
+                        setStatusMessage({ text: 'Error downloading file', type: 'error' });
                       }
                     }}
                     style={{
