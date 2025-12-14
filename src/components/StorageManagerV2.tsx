@@ -481,32 +481,80 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
                     {/* File Metadata - shown when selected */}
                     {isSelected && (
                       <div style={{ 
-                        marginTop: 8, 
-                        paddingTop: 8, 
-                        borderTop: '1px solid #1f2937',
-                        fontSize: 10,
-                        color: '#64748b'
+                        marginTop: 12, 
+                        paddingTop: 12, 
+                        borderTop: '1px solid #1e3a5f',
+                        fontSize: 11,
+                        color: '#64748b',
+                        background: 'rgba(15, 23, 42, 0.5)',
+                        borderRadius: 8,
+                        padding: 12,
+                        marginLeft: -6,
+                        marginRight: -6
                       }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span>📅 Created:</span>
-                          <span style={{ color: '#94a3b8' }}>{new Date().toLocaleDateString()}</span>
+                        <div style={{ 
+                          fontSize: 10, 
+                          color: '#94a3b8', 
+                          textTransform: 'uppercase', 
+                          letterSpacing: 0.5, 
+                          marginBottom: 10,
+                          fontWeight: 600
+                        }}>
+                          Document Info
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span>📝 Modified:</span>
-                          <span style={{ color: '#94a3b8' }}>{new Date().toLocaleDateString()}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span>👤 Owner:</span>
-                          <span style={{ color: '#94a3b8' }}>System</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>📊 Status:</span>
-                          <span style={{ 
-                            color: '#22c55e',
-                            background: 'rgba(34, 197, 94, 0.1)',
-                            padding: '1px 6px',
-                            borderRadius: 4
-                          }}>Active</span>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                          <div style={{ 
+                            background: 'rgba(30, 41, 59, 0.5)', 
+                            padding: '8px 10px', 
+                            borderRadius: 6,
+                            border: '1px solid #1e293b'
+                          }}>
+                            <div style={{ fontSize: 9, color: '#64748b', marginBottom: 2 }}>📅 Created</div>
+                            <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 500 }}>{new Date().toLocaleDateString('en-GB')}</div>
+                          </div>
+                          <div style={{ 
+                            background: 'rgba(30, 41, 59, 0.5)', 
+                            padding: '8px 10px', 
+                            borderRadius: 6,
+                            border: '1px solid #1e293b'
+                          }}>
+                            <div style={{ fontSize: 9, color: '#64748b', marginBottom: 2 }}>📝 Modified</div>
+                            <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 500 }}>{new Date().toLocaleDateString('en-GB')}</div>
+                          </div>
+                          <div style={{ 
+                            background: 'rgba(30, 41, 59, 0.5)', 
+                            padding: '8px 10px', 
+                            borderRadius: 6,
+                            border: '1px solid #1e293b'
+                          }}>
+                            <div style={{ fontSize: 9, color: '#64748b', marginBottom: 2 }}>👤 Owner</div>
+                            <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 500 }}>System</div>
+                          </div>
+                          <div style={{ 
+                            background: 'rgba(30, 41, 59, 0.5)', 
+                            padding: '8px 10px', 
+                            borderRadius: 6,
+                            border: '1px solid #1e293b'
+                          }}>
+                            <div style={{ fontSize: 9, color: '#64748b', marginBottom: 2 }}>📊 Status</div>
+                            <div style={{ 
+                              fontSize: 11, 
+                              color: '#22c55e', 
+                              fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}>
+                              <span style={{ 
+                                width: 6, 
+                                height: 6, 
+                                borderRadius: '50%', 
+                                background: '#22c55e',
+                                display: 'inline-block'
+                              }}></span>
+                              Active
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
