@@ -517,10 +517,11 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
             
             {/* File Actions */}
             {filesToUpload.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 8, borderTop: '1px solid #1f2937' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 8, borderTop: '1px solid #1f2937', position: 'relative', zIndex: 50 }}>
                 {/* Chat with Document Button - Full Width */}
                 <button
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     const fileName = filesToUpload[0]?.name || 'document';
                     const minimalEntry: TrailEntry = {
@@ -536,17 +537,27 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
                     background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
                     border: 'none',
                     borderRadius: 8,
-                    padding: '12px 16px',
+                    padding: '14px 16px',
                     color: 'white',
                     fontWeight: 600,
-                    fontSize: 13,
+                    fontSize: 14,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 8,
-                    zIndex: 10,
-                    position: 'relative'
+                    zIndex: 100,
+                    position: 'relative',
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
                   }}
                 >
                   💬 Chat with Document
@@ -647,10 +658,19 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
                 </div>
 
                 {trail.length === 0 && (
-                  <div style={{ color: '#94a3b8', fontSize: 13, padding: '20px', textAlign: 'center' }}>
-                    <div style={{ marginBottom: 12 }}>No recommendations yet for selected file</div>
+                  <div style={{ 
+                    color: '#94a3b8', 
+                    fontSize: 13, 
+                    padding: '20px', 
+                    textAlign: 'center',
+                    position: 'relative',
+                    zIndex: 10
+                  }}>
+                    <div style={{ marginBottom: 16 }}>No recommendations yet for selected file</div>
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         // Create a minimal TrailEntry for chat
                         const fileName = filesToUpload[0]?.name || 'document';
                         const minimalEntry: TrailEntry = {
@@ -665,15 +685,27 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
                         background: 'linear-gradient(135deg, #22d3ee 0%, #0ea5e9 100%)',
                         border: 'none',
                         borderRadius: 8,
-                        padding: '10px 20px',
+                        padding: '14px 28px',
                         color: '#0f172a',
                         fontWeight: 600,
-                        fontSize: 13,
+                        fontSize: 14,
                         cursor: 'pointer',
-                        display: 'flex',
+                        display: 'inline-flex',
                         alignItems: 'center',
+                        justifyContent: 'center',
                         gap: 8,
-                        margin: '0 auto'
+                        position: 'relative',
+                        zIndex: 100,
+                        boxShadow: '0 4px 12px rgba(34, 211, 238, 0.3)',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(34, 211, 238, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(34, 211, 238, 0.3)';
                       }}
                     >
                       💬 Chat with Document
@@ -789,21 +821,37 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
 
                       {/* Chat Button */}
                       <button
-                        onClick={() => openChatWithDocument(t)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openChatWithDocument(t);
+                        }}
                         style={{
                           width: '100%',
                           background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
                           border: 'none',
                           borderRadius: 6,
-                          padding: '10px 16px',
+                          padding: '12px 16px',
                           color: 'white',
                           fontWeight: 600,
-                          fontSize: 12,
+                          fontSize: 13,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: 8
+                          gap: 8,
+                          position: 'relative',
+                          zIndex: 10,
+                          boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.3)';
                         }}
                       >
                         💬 Chat with Document
