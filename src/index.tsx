@@ -14,10 +14,10 @@ try {
   );
   console.info('✅ Root element found, rendering app...');
   
+  // Note: StrictMode removed to prevent double API calls in development
+  // StrictMode causes useEffect to run twice, leading to duplicate backend requests
   root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
+    <App />
   );
   
   console.info('✅ App rendered successfully');

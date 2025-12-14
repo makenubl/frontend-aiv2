@@ -4,10 +4,9 @@
   padding: 0;
 }
 
-/* Ensure date pickers and file dialogs can escape containers */
-input[type="date"],
-input[type="file"] {
-  isolation: auto !important;
+html {
+  scroll-behavior: auto;
+  overscroll-behavior: contain;
 }
 
 body {
@@ -17,6 +16,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
+  overscroll-behavior: contain;
 }
 
 .app {

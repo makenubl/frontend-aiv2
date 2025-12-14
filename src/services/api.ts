@@ -114,4 +114,10 @@ export const storageApi = {
 
   inviteToFolder: (folder: string, email: string, role: string) =>
     apiClient.post('/storage/access/invite', { folder, email, role }),
+
+  applyChangesWithGPT: (folder: string, document: string, recommendations: any[]) =>
+    apiClient.post('/storage/apply-changes', { folder, document, recommendations }),
+
+  deleteFile: (folder: string, fileName: string) =>
+    apiClient.delete('/storage/files', { data: { folder, fileName } }),
 };

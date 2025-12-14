@@ -3,20 +3,24 @@ import {
   FiHome, FiFileText, FiShield, FiFolder, 
   FiSettings, FiLogOut, FiMenu, FiX, FiBell,
   FiClock, FiTrendingUp,
-  FiZap, FiGlobe, FiChevronDown, FiFile
+  FiGlobe, FiChevronDown, FiFile
 } from 'react-icons/fi';
-import StorageManager from '../components/StorageManager';
+import StorageManagerV2 from '../components/StorageManagerV2';
+import DocumentChatPage from './DocumentChatPage';
 import { applicationsApi, ApplicationFolder, ComprehensiveEvaluation } from '../services/applications.api';
 import { NOCCreationPanel } from '../components/NOCCreationPanel';
-import { DocumentManagementPanel } from '../components/DocumentManagementPanel';
-import { AIBotPanel } from '../components/AIBotPanel';
 import '../styles/ultra-premium.css';
 
 interface UnifiedDashboardProps {
   onLogout?: () => void;
 }
 
-type ActiveView = 'applications' | 'documents' | 'noc' | 'ai-bot' | 'settings' | 'storage';
+type ActiveView = 'applications' | 'noc' | 'settings' | 'storage' | 'document-chat';
+
+interface DocumentChatState {
+  documentName: string;
+  folderName: string;
+}
 
 export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) => {
   const [applications, setApplications] = useState<ApplicationFolder[]>([]);
@@ -30,6 +34,7 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
   const [scoreDetail, setScoreDetail] = useState<{ label: string; score: number; items: string[] } | null>(null);
   const [logoLoadError, setLogoLoadError] = useState<Record<string, boolean>>({});
   const [showDocsPreview, setShowDocsPreview] = useState<string | null>(null);
+  const [documentChatState, setDocumentChatState] = useState<DocumentChatState | null>(null);
   const [showNewApp, setShowNewApp] = useState(false);
   const [newAppMeta, setNewAppMeta] = useState({ name: '', vendor: '', version: '', description: '' });
   const [newAppFiles, setNewAppFiles] = useState<File[]>([]);
@@ -135,29 +140,25 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
 
   const menuItems = [
     { id: 'applications', label: 'Applications', icon: <FiHome />, badge: stats.total },
-    { id: 'documents', label: 'Documents', icon: <FiFolder />, badge: null },
     { id: 'noc', label: 'No Objection Certificate', icon: <FiShield />, badge: stats.pending },
-    { id: 'ai-bot', label: 'AI Assistant', icon: <FiZap />, badge: null },
-    { id: 'storage', label: 'Storage', icon: <FiFolder />, badge: null },
+    { id: 'storage', label: 'Storage & AI Chat', icon: <FiFolder />, badge: null },
     { id: 'settings', label: 'Settings', icon: <FiSettings />, badge: null },
   ];
+
+  const handleOpenDocumentChat = (documentName: string, folderName: string) => {
+    setDocumentChatState({ documentName, folderName });
+    setActiveView('document-chat');
+  };
+
+  const handleCloseDocumentChat = () => {
+    setDocumentChatState(null);
+    setActiveView('storage');
+  };
 
   const renderContent = () => {
     switch (activeView) {
       case 'applications':
         return renderApplicationsView();
-      case 'documents':
-        return selectedApp ? (
-          <DocumentManagementPanel 
-            applicationId={selectedApp.id} 
-            documents={selectedApp.documents}
-            companyName={selectedApp.applicationData?.companyName}
-          />
-        ) : (
-          <div style={{ padding: 'var(--space-2xl)', textAlign: 'center' }}>
-            <p style={{ color: 'var(--text-secondary)' }}>Select an application to manage documents</p>
-          </div>
-        );
       case 'noc':
         return (
           <NOCCreationPanel 
@@ -169,26 +170,23 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
             onEvaluate={evaluateApplication}
           />
         );
-      case 'ai-bot':
-        return selectedApp ? (
-          <AIBotPanel 
-            applicationId={selectedApp.id}
-            applicationName={selectedApp.applicationData?.companyName || 'Application'}
-          />
-        ) : (
-          <div style={{ padding: 'var(--space-2xl)' }}>
-            <AIBotPanel 
-              applicationId="general"
-              applicationName="General Inquiry"
-            />
-          </div>
-        );
       case 'storage':
         return (
-          <div style={{ padding: 'var(--space-2xl)' }}>
-            <StorageManager />
+          <div style={{ position: 'absolute', inset: 0, paddingTop: '81px' }}>
+            <StorageManagerV2 onOpenDocumentChat={handleOpenDocumentChat} />
           </div>
         );
+      case 'document-chat':
+        if (documentChatState) {
+          return (
+            <DocumentChatPage
+              documentName={documentChatState.documentName}
+              folderName={documentChatState.folderName}
+              onBack={handleCloseDocumentChat}
+            />
+          );
+        }
+        return renderApplicationsView();
       case 'settings':
         return renderSettingsView();
       default:
@@ -539,7 +537,7 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedApp(app);
-                    setActiveView('documents');
+                    setActiveView('storage');
                   }}
                   style={{
                     width: '100%',
@@ -553,7 +551,7 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
                     cursor: 'pointer'
                   }}
                 >
-                  View All Documents →
+                  Open Storage & AI Chat →
                 </button>
               </div>
             )}
@@ -792,9 +790,8 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
             </h2>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
               {activeView === 'applications' && `Managing ${stats.total} applications`}
-              {activeView === 'documents' && 'Document repository and management'}
+              {activeView === 'storage' && 'Document storage and AI-powered chat'}
               {activeView === 'noc' && 'NOC creation and issuance'}
-              {activeView === 'ai-bot' && 'AI-powered assistance and insights'}
             </p>
           </div>
           <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center' }}>
@@ -923,7 +920,7 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
               <div style={{ display: 'grid', gap: 'var(--space-md)' }}>
                 {[
                   { label: 'Compliance', score: evaluation.complianceScore, icon: <FiShield />, category: 'compliance' },
-                  { label: 'Technical', score: evaluation.technicalScore, icon: <FiZap />, category: 'technical' },
+                  { label: 'Technical', score: evaluation.technicalScore, icon: <FiFileText />, category: 'technical' },
                   { label: 'Business', score: evaluation.businessScore, icon: <FiTrendingUp />, category: 'business' },
                   { label: 'Regulatory', score: evaluation.regulatoryScore, icon: <FiGlobe />, category: 'regulatory' },
                 ].map((item) => (
@@ -1009,7 +1006,7 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
                 marginBottom: 'var(--space-xl)'
               }}>
                 <h3 style={{ marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-                  <FiZap /> AI Insights
+                  <FiTrendingUp /> AI Insights
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', lineHeight: '1.8', whiteSpace: 'pre-wrap' }}>
                   {evaluation.aiInsights}
