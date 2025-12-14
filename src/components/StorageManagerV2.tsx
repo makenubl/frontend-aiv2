@@ -657,64 +657,64 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
                   Selected File: {filesToUpload.map(f => f.name).join(', ')}
                 </div>
 
-                {trail.length === 0 && (
-                  <div style={{ 
-                    color: '#94a3b8', 
-                    fontSize: 13, 
-                    padding: '20px', 
-                    textAlign: 'center',
-                    position: 'relative',
-                    zIndex: 10
-                  }}>
-                    <div style={{ marginBottom: 16 }}>No recommendations yet for selected file</div>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        // Create a minimal TrailEntry for chat
-                        const fileName = filesToUpload[0]?.name || 'document';
-                        const minimalEntry: TrailEntry = {
-                          documentName: fileName,
-                          version: 1,
-                          recommendations: [],
-                          createdAt: new Date().toISOString()
-                        };
-                        openChatWithDocument(minimalEntry);
-                      }}
-                      style={{
-                        background: 'linear-gradient(135deg, #22d3ee 0%, #0ea5e9 100%)',
-                        border: 'none',
-                        borderRadius: 8,
-                        padding: '14px 28px',
-                        color: '#0f172a',
-                        fontWeight: 600,
-                        fontSize: 14,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        position: 'relative',
-                        zIndex: 100,
-                        boxShadow: '0 4px 12px rgba(34, 211, 238, 0.3)',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(34, 211, 238, 0.4)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(34, 211, 238, 0.3)';
-                      }}
-                    >
-                      💬 Chat with Document
-                    </button>
-                  </div>
-                )}
-
                 <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {trail.map((t) => (
+                  {trail.length === 0 ? (
+                    <div style={{ 
+                      color: '#94a3b8', 
+                      fontSize: 13, 
+                      padding: '20px', 
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flex: 1
+                    }}>
+                      <div style={{ marginBottom: 16 }}>No recommendations yet for selected file</div>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          // Create a minimal TrailEntry for chat
+                          const fileName = filesToUpload[0]?.name || 'document';
+                          const minimalEntry: TrailEntry = {
+                            documentName: fileName,
+                            version: 1,
+                            recommendations: [],
+                            createdAt: new Date().toISOString()
+                          };
+                          openChatWithDocument(minimalEntry);
+                        }}
+                        style={{
+                          background: 'linear-gradient(135deg, #22d3ee 0%, #0ea5e9 100%)',
+                          border: 'none',
+                          borderRadius: 8,
+                          padding: '14px 28px',
+                          color: '#0f172a',
+                          fontWeight: 600,
+                          fontSize: 14,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          boxShadow: '0 4px 12px rgba(34, 211, 238, 0.3)',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 6px 16px rgba(34, 211, 238, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(34, 211, 238, 0.3)';
+                        }}
+                      >
+                        💬 Chat with Document
+                      </button>
+                    </div>
+                  ) : (
+                    trail.map((t) => (
                     <div
                       key={`${t.documentName}-${t.version}`}
                       style={{
@@ -857,7 +857,8 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
                         💬 Chat with Document
                       </button>
                     </div>
-                  ))}
+                  ))
+                  )}
                 </div>
               </>
             )}
