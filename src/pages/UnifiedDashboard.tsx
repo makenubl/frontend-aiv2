@@ -615,10 +615,121 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
   );
 
   const renderSettingsView = () => (
-    <div style={{ padding: 'var(--space-2xl)', maxWidth: '800px' }}>
-      <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: 'var(--space-xl)' }}>Settings</h2>
+    <div style={{ padding: 'var(--space-2xl)', maxWidth: '1000px' }}>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: 'var(--space-xl)' }}>⚙️ Settings</h2>
+      
+      {/* User Management Section */}
+      <div style={{ background: 'var(--glass-bg)', padding: 'var(--space-xl)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)', marginBottom: 'var(--space-xl)' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: 'var(--space-lg)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          👥 User Management
+        </h3>
+        
+        {/* Default Users Table */}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 500 }}>Username</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 500 }}>Email</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 500 }}>Role</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 500 }}>Permissions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <td style={{ padding: '12px', fontWeight: 600 }}>admin@pvara.gov.pk</td>
+                <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>admin@pvara.gov.pk</td>
+                <td style={{ padding: '12px' }}><span style={{ background: 'rgba(220, 38, 38, 0.2)', color: '#ef4444', padding: '4px 10px', borderRadius: 12, fontSize: '0.75rem', fontWeight: 600 }}>👑 Admin</span></td>
+                <td style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Full access to all features</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <td style={{ padding: '12px', fontWeight: 600 }}>evaluator</td>
+                <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>evaluator@pvara.gov.pk</td>
+                <td style={{ padding: '12px' }}><span style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '4px 10px', borderRadius: 12, fontSize: '0.75rem', fontWeight: 600 }}>⚡ Evaluator</span></td>
+                <td style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Can evaluate, upload, create NOC</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <td style={{ padding: '12px', fontWeight: 600 }}>reviewer</td>
+                <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>reviewer@pvara.gov.pk</td>
+                <td style={{ padding: '12px' }}><span style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '4px 10px', borderRadius: 12, fontSize: '0.75rem', fontWeight: 600 }}>👁️ Reviewer</span></td>
+                <td style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>View-only access</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '12px', fontWeight: 600 }}>demo</td>
+                <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>demo@pvara.gov.pk</td>
+                <td style={{ padding: '12px' }}><span style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '4px 10px', borderRadius: 12, fontSize: '0.75rem', fontWeight: 600 }}>⚡ Evaluator</span></td>
+                <td style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Demo account for testing</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Permissions Matrix */}
+      <div style={{ background: 'var(--glass-bg)', padding: 'var(--space-xl)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)', marginBottom: 'var(--space-xl)' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: 'var(--space-lg)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          🔐 Permissions Matrix
+        </h3>
+        
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                <th style={{ padding: '10px', textAlign: 'left', color: 'var(--text-secondary)', fontWeight: 500 }}>Feature</th>
+                <th style={{ padding: '10px', textAlign: 'center', color: '#ef4444', fontWeight: 600 }}>👑 Admin</th>
+                <th style={{ padding: '10px', textAlign: 'center', color: '#3b82f6', fontWeight: 600 }}>⚡ Evaluator</th>
+                <th style={{ padding: '10px', textAlign: 'center', color: '#22c55e', fontWeight: 600 }}>👁️ Reviewer</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { feature: 'View Applications', admin: true, evaluator: true, reviewer: true },
+                { feature: 'Upload Applications', admin: true, evaluator: true, reviewer: false },
+                { feature: 'Delete Applications', admin: true, evaluator: false, reviewer: false },
+                { feature: 'Trigger AI Evaluation', admin: true, evaluator: true, reviewer: false },
+                { feature: 'Re-evaluate with GPT-5.1', admin: true, evaluator: true, reviewer: false },
+                { feature: 'View Storage Files', admin: true, evaluator: true, reviewer: true },
+                { feature: 'Upload Files', admin: true, evaluator: true, reviewer: false },
+                { feature: 'Delete Files/Folders', admin: true, evaluator: false, reviewer: false },
+                { feature: 'Chat with Documents', admin: true, evaluator: true, reviewer: true },
+                { feature: 'Create NOC', admin: true, evaluator: true, reviewer: false },
+                { feature: 'Access Settings', admin: true, evaluator: false, reviewer: false },
+              ].map((row, idx) => (
+                <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <td style={{ padding: '10px', fontWeight: 500 }}>{row.feature}</td>
+                  <td style={{ padding: '10px', textAlign: 'center' }}>{row.admin ? '✅' : '❌'}</td>
+                  <td style={{ padding: '10px', textAlign: 'center' }}>{row.evaluator ? '✅' : '❌'}</td>
+                  <td style={{ padding: '10px', textAlign: 'center' }}>{row.reviewer ? '✅' : '❌'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* System Info */}
       <div style={{ background: 'var(--glass-bg)', padding: 'var(--space-xl)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)' }}>
-        <p style={{ color: 'var(--text-secondary)' }}>Application settings and preferences will appear here.</p>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: 'var(--space-lg)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          🖥️ System Information
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+          <div style={{ background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 8 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 4 }}>AI Model</div>
+            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#22d3ee' }}>GPT-5.1</div>
+          </div>
+          <div style={{ background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 8 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 4 }}>Storage</div>
+            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#22d3ee' }}>MongoDB GridFS</div>
+          </div>
+          <div style={{ background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 8 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 4 }}>Backend</div>
+            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#22d3ee' }}>Vercel Serverless</div>
+          </div>
+          <div style={{ background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 8 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 4 }}>Version</div>
+            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#22d3ee' }}>2.0.0</div>
+          </div>
+        </div>
       </div>
     </div>
   );
