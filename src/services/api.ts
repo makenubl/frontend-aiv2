@@ -7,6 +7,34 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || (
 
 console.log('🔗 API Base URL:', API_BASE_URL);
 
+// Helper to get current user role from localStorage
+const getUserRole = (): string => {
+  try {
+    const authData = localStorage.getItem('auth-storage');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      return parsed.state?.user?.role || 'reviewer';
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return 'reviewer';
+};
+
+// Helper to get current user email from localStorage
+const getUserEmail = (): string => {
+  try {
+    const authData = localStorage.getItem('auth-storage');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      return parsed.state?.user?.email || '';
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return '';
+};
+
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -15,12 +43,26 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
+// Add request interceptor to include role headers
+apiClient.interceptors.request.use((config) => {
+  config.headers['x-user-role'] = getUserRole();
+  config.headers['x-user-email'] = getUserEmail();
+  return config;
+});
+
 // Separate client for file uploads (without Content-Type header so axios can set multipart boundary)
 const uploadClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'x-api-key': process.env.REACT_APP_API_KEY || 'dev-key-12345',
   },
+});
+
+// Add request interceptor to upload client as well
+uploadClient.interceptors.request.use((config) => {
+  config.headers['x-user-role'] = getUserRole();
+  config.headers['x-user-email'] = getUserEmail();
+  return config;
 });
 
 console.log('✅ Upload client configured for:', API_BASE_URL);
@@ -102,12 +144,7 @@ export const storageApi = {
   }),
 
   chatAboutRecommendations: (folder: string, document: string | undefined, message: string) =>
-    apiClient.post('/storage/chat', { folder, document, message }, {
-      headers: {
-        'x-user-role': 'owner',
-        'x-user-email': 'user@example.com'
-      }
-    }),
+    apiClient.post('/storage/chat', { folder, document, message }),
 
   getStorageChat: (folder: string, document?: string) =>
     apiClient.get('/storage/chat', { params: { folder, document } }),

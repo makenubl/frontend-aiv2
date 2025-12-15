@@ -3,12 +3,14 @@ import {
   FiHome, FiFileText, FiShield, FiFolder, 
   FiSettings, FiLogOut, FiMenu, FiX, FiBell,
   FiClock, FiTrendingUp,
-  FiGlobe, FiChevronDown, FiFile
+  FiGlobe, FiChevronDown, FiFile, FiLock
 } from 'react-icons/fi';
 import StorageManagerV2 from '../components/StorageManagerV2';
 import DocumentChatPage from './DocumentChatPage';
 import { applicationsApi, ApplicationFolder, ComprehensiveEvaluation } from '../services/applications.api';
 import { NOCCreationPanel } from '../components/NOCCreationPanel';
+import { usePermissions, getRoleDisplayName, getRoleBadgeColor } from '../hooks/usePermissions';
+import { useAuthStore } from '../store/auth.store';
 import '../styles/ultra-premium.css';
 
 interface UnifiedDashboardProps {
@@ -39,6 +41,10 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
   const [newAppMeta, setNewAppMeta] = useState({ name: '', vendor: '', version: '', description: '' });
   const [newAppFiles, setNewAppFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Role-based permissions
+  const permissions = usePermissions();
+  const user = useAuthStore(state => state.user);
 
   const loadApplications = React.useCallback(async () => {
     try {
@@ -145,11 +151,11 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
     };
 
   const menuItems = [
-    { id: 'applications', label: 'Applications', icon: <FiHome />, badge: stats.total },
-    { id: 'noc', label: 'No Objection Certificate', icon: <FiShield />, badge: stats.pending },
-    { id: 'storage', label: 'Storage & AI Chat', icon: <FiFolder />, badge: null },
-    { id: 'settings', label: 'Settings', icon: <FiSettings />, badge: null },
-  ];
+    { id: 'applications', label: 'Applications', icon: <FiHome />, badge: stats.total, permission: 'applications:view' as const },
+    { id: 'noc', label: 'No Objection Certificate', icon: <FiShield />, badge: stats.pending, permission: 'noc:view' as const },
+    { id: 'storage', label: 'Storage & AI Chat', icon: <FiFolder />, badge: null, permission: 'storage:view' as const },
+    { id: 'settings', label: 'Settings', icon: <FiSettings />, badge: null, permission: 'settings:access' as const },
+  ].filter(item => permissions.can(item.permission));
 
   const handleOpenDocumentChat = (documentName: string, folderName: string) => {
     setDocumentChatState({ documentName, folderName });
@@ -229,8 +235,15 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
         <button
           className="btn-add-app"
           onClick={() => setShowNewApp(true)}
+          disabled={!permissions.canUploadApplications}
+          title={permissions.canUploadApplications ? 'Add new application' : 'You do not have permission to add applications'}
+          style={{ opacity: permissions.canUploadApplications ? 1 : 0.5 }}
         >
-          <FiFileText style={{ marginRight: 6 }} /> Add Application
+          {permissions.canUploadApplications ? (
+            <><FiFileText style={{ marginRight: 6 }} /> Add Application</>
+          ) : (
+            <><FiLock style={{ marginRight: 6 }} /> Add Application</>
+          )}
         </button>
       </div>
 
@@ -570,9 +583,11 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
                   setSelectedApp(app);
                   evaluateApplication(app.id);
                 }}
-                disabled={evaluating}
+                disabled={evaluating || !permissions.canTriggerEvaluation}
+                title={permissions.canTriggerEvaluation ? 'Run AI evaluation' : 'You do not have permission to trigger evaluations'}
+                style={{ opacity: permissions.canTriggerEvaluation ? 1 : 0.6 }}
               >
-                <FiShield /> {evaluating ? 'Evaluating...' : 'AI Evaluation'}
+                {permissions.canTriggerEvaluation ? <FiShield /> : <FiLock />} {evaluating ? 'Evaluating...' : 'AI Evaluation'}
               </button>
               <button 
                 className="btn btn-secondary" 
@@ -581,6 +596,7 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
                   setSelectedApp(app);
                   setActiveView('noc');
                 }}
+                disabled={!permissions.canViewNOC}
               >
                 <FiFileText /> NOC
               </button>
@@ -730,6 +746,50 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
           padding: 'var(--space-lg)', 
           borderTop: '1px solid var(--glass-border)',
         }}>
+          {/* Role Badge */}
+          {sidebarOpen && user && (
+            <div style={{
+              marginBottom: 'var(--space-md)',
+              padding: 'var(--space-sm) var(--space-md)',
+              background: getRoleBadgeColor(permissions.role).bg,
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-sm)'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'var(--glass-bg)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.9rem'
+              }}>
+                {permissions.isAdmin ? '👑' : permissions.isEvaluator ? '⚡' : '👁️'}
+              </div>
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <div style={{ 
+                  fontSize: '0.8rem', 
+                  fontWeight: 600, 
+                  color: 'var(--text-primary)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {user.name || user.username}
+                </div>
+                <div style={{ 
+                  fontSize: '0.7rem', 
+                  color: getRoleBadgeColor(permissions.role).text,
+                  fontWeight: 500
+                }}>
+                  {getRoleDisplayName(permissions.role)}
+                </div>
+              </div>
+            </div>
+          )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             style={{
@@ -870,27 +930,29 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
-                <button 
-                  type="button"
-                  onClick={handleRefreshEvaluation}
-                  disabled={evaluating}
-                  style={{ 
-                    background: 'linear-gradient(135deg, #6366f1, #22d3ee)', 
-                    border: 'none',
-                    padding: 'var(--space-sm) var(--space-md)',
-                    borderRadius: 'var(--radius-md)',
-                    cursor: evaluating ? 'wait' : 'pointer',
-                    color: 'white',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    opacity: evaluating ? 0.7 : 1
-                  }}
-                >
-                  {evaluating ? '⏳ Evaluating...' : '🔄 Re-evaluate with GPT-5.1'}
-                </button>
+                {permissions.canRefreshEvaluation && (
+                  <button 
+                    type="button"
+                    onClick={handleRefreshEvaluation}
+                    disabled={evaluating}
+                    style={{ 
+                      background: 'linear-gradient(135deg, #6366f1, #22d3ee)', 
+                      border: 'none',
+                      padding: 'var(--space-sm) var(--space-md)',
+                      borderRadius: 'var(--radius-md)',
+                      cursor: evaluating ? 'wait' : 'pointer',
+                      color: 'white',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      opacity: evaluating ? 0.7 : 1
+                    }}
+                  >
+                    {evaluating ? '⏳ Evaluating...' : '🔄 Re-evaluate with GPT-5.1'}
+                  </button>
+                )}
                 <button 
                   type="button"
                   onClick={() => setShowEvalModal(false)}

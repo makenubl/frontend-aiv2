@@ -3,12 +3,47 @@ import axios from 'axios';
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 const API_KEY = process.env.REACT_APP_API_KEY || 'dev-key-12345';
 
+// Helper to get current user role from localStorage
+const getUserRole = (): string => {
+  try {
+    const authData = localStorage.getItem('auth-storage');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      return parsed.state?.user?.role || 'reviewer';
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return 'reviewer';
+};
+
+// Helper to get current user email from localStorage
+const getUserEmail = (): string => {
+  try {
+    const authData = localStorage.getItem('auth-storage');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      return parsed.state?.user?.email || '';
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return '';
+};
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'x-api-key': API_KEY
   }
+});
+
+// Add request interceptor to include role headers
+api.interceptors.request.use((config) => {
+  config.headers['x-user-role'] = getUserRole();
+  config.headers['x-user-email'] = getUserEmail();
+  return config;
 });
 
 export interface ApplicationFolder {

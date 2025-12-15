@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { storageApi } from '../services/api';
+import { usePermissions } from '../hooks/usePermissions';
 
 interface RecommendationItem {
   id: string;
@@ -30,6 +31,9 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
   const [loadingData, setLoadingData] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // Role-based permissions
+  const permissions = usePermissions();
 
   const refreshFolders = async () => {
     const { data } = await storageApi.listFolders();
@@ -166,20 +170,24 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
         <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: 12, padding: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}>📁 Folders</div>
-            <button onClick={async () => {
-              const name = prompt('New folder name:');
-              if (!name) return;
-              try {
-                await storageApi.createFolder(name);
-                await refreshFolders();
-                setSelectedFolder(name);
-                setStatusMessage({ text: `Folder "${name}" created`, type: 'success' });
-              } catch (e: any) {
-                setStatusMessage({ text: e.response?.data?.error || 'Error', type: 'error' });
-              }
-            }} style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', borderRadius: 6, padding: '8px 16px', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}>
-              + New Folder
-            </button>
+            {permissions.canUploadFiles ? (
+              <button onClick={async () => {
+                const name = prompt('New folder name:');
+                if (!name) return;
+                try {
+                  await storageApi.createFolder(name);
+                  await refreshFolders();
+                  setSelectedFolder(name);
+                  setStatusMessage({ text: `Folder "${name}" created`, type: 'success' });
+                } catch (e: any) {
+                  setStatusMessage({ text: e.response?.data?.error || 'Error', type: 'error' });
+                }
+              }} style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', borderRadius: 6, padding: '8px 16px', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}>
+                + New Folder
+              </button>
+            ) : (
+              <span style={{ fontSize: 11, color: '#64748b' }}>🔒 View Only</span>
+            )}
           </div>
           
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -196,7 +204,7 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
                   <div style={{ fontWeight: 600, fontSize: 13, color: selectedFolder === folder ? '#fff' : '#e2e8f0' }}>{folder}</div>
                   <div style={{ fontSize: 10, color: selectedFolder === folder ? '#a7f3d0' : '#64748b' }}>{selectedFolder === folder ? '✓ Selected' : 'Click to open'}</div>
                 </div>
-                {selectedFolder === folder && (
+                {selectedFolder === folder && permissions.canDeleteFiles && (
                   <button onClick={async (e) => {
                     e.stopPropagation();
                     if (!window.confirm(`Delete folder "${folder}"?`)) return;
@@ -212,37 +220,39 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
         {/* Upload & Files Section */}
         {selectedFolder && (
           <>
-            {/* Upload Area */}
-            <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} style={{
-              background: isDragging ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.1), rgba(99, 102, 241, 0.1))' : '#111827',
-              border: isDragging ? '2px dashed #22d3ee' : '1px solid #1f2937', borderRadius: 12, padding: 20, textAlign: 'center', transition: 'all 0.2s'
-            }}>
-              <input ref={fileInputRef} type="file" multiple accept=".pdf,.doc,.docx,.txt,.xls,.xlsx" onChange={(e) => setFilesToUpload(prev => [...prev, ...Array.from(e.target.files || [])])} style={{ display: 'none' }} />
-              <div style={{ marginBottom: 12 }}><span style={{ fontSize: 32 }}>📤</span></div>
-              <div style={{ fontSize: 14, color: '#e2e8f0', marginBottom: 4 }}>Drag & drop files here or</div>
-              <button onClick={() => fileInputRef.current?.click()} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none', borderRadius: 8, padding: '10px 24px', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 13, margin: '8px 0' }}>Browse Files</button>
-              <div style={{ fontSize: 11, color: '#64748b' }}>Supports: PDF, DOC, DOCX, TXT, XLS, XLSX</div>
+            {/* Upload Area - Only show for users with upload permission */}
+            {permissions.canUploadFiles && (
+              <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} style={{
+                background: isDragging ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.1), rgba(99, 102, 241, 0.1))' : '#111827',
+                border: isDragging ? '2px dashed #22d3ee' : '1px solid #1f2937', borderRadius: 12, padding: 20, textAlign: 'center', transition: 'all 0.2s'
+              }}>
+                <input ref={fileInputRef} type="file" multiple accept=".pdf,.doc,.docx,.txt,.xls,.xlsx" onChange={(e) => setFilesToUpload(prev => [...prev, ...Array.from(e.target.files || [])])} style={{ display: 'none' }} />
+                <div style={{ marginBottom: 12 }}><span style={{ fontSize: 32 }}>📤</span></div>
+                <div style={{ fontSize: 14, color: '#e2e8f0', marginBottom: 4 }}>Drag & drop files here or</div>
+                <button onClick={() => fileInputRef.current?.click()} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none', borderRadius: 8, padding: '10px 24px', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 13, margin: '8px 0' }}>Browse Files</button>
+                <div style={{ fontSize: 11, color: '#64748b' }}>Supports: PDF, DOC, DOCX, TXT, XLS, XLSX</div>
 
-              {filesToUpload.length > 0 && (
-                <div style={{ marginTop: 16, padding: 12, background: '#0b1220', borderRadius: 8, textAlign: 'left' }}>
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>📎 {filesToUpload.length} file(s) ready:</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {filesToUpload.map((file, idx) => (
-                      <div key={idx} style={{ background: '#1f2937', padding: '6px 10px', borderRadius: 6, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        {getFileIcon(file.name)} {file.name}
-                        <button onClick={() => setFilesToUpload(prev => prev.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 4px', fontSize: 12 }}>×</button>
-                      </div>
-                    ))}
+                {filesToUpload.length > 0 && (
+                  <div style={{ marginTop: 16, padding: 12, background: '#0b1220', borderRadius: 8, textAlign: 'left' }}>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>📎 {filesToUpload.length} file(s) ready:</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {filesToUpload.map((file, idx) => (
+                        <div key={idx} style={{ background: '#1f2937', padding: '6px 10px', borderRadius: 6, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {getFileIcon(file.name)} {file.name}
+                          <button onClick={() => setFilesToUpload(prev => prev.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 4px', fontSize: 12 }}>×</button>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                      <button onClick={onUpload} disabled={uploading} style={{ flex: 1, background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', borderRadius: 6, padding: '10px', color: 'white', cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13, opacity: uploading ? 0.6 : 1 }}>
+                        {uploading ? '⏳ Uploading...' : `⬆ Upload ${filesToUpload.length} File(s)`}
+                      </button>
+                      <button onClick={() => setFilesToUpload([])} style={{ background: '#374151', border: 'none', borderRadius: 6, padding: '10px 16px', color: '#e2e8f0', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Clear</button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                    <button onClick={onUpload} disabled={uploading} style={{ flex: 1, background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', borderRadius: 6, padding: '10px', color: 'white', cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13, opacity: uploading ? 0.6 : 1 }}>
-                      {uploading ? '⏳ Uploading...' : `⬆ Upload ${filesToUpload.length} File(s)`}
-                    </button>
-                    <button onClick={() => setFilesToUpload([])} style={{ background: '#374151', border: 'none', borderRadius: 6, padding: '10px 16px', color: '#e2e8f0', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Clear</button>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Files Section */}
             <div style={{ flex: 1, background: '#111827', border: '1px solid #1f2937', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -259,7 +269,9 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
                     {selectedFiles.length > 0 && (
                       <>
                         <button onClick={downloadSelectedFiles} style={{ background: '#3b82f6', border: 'none', borderRadius: 6, padding: '6px 12px', color: 'white', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>⬇ Download ({selectedFiles.length})</button>
-                        <button onClick={deleteSelectedFiles} style={{ background: '#ef4444', border: 'none', borderRadius: 6, padding: '6px 12px', color: 'white', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>🗑 Delete ({selectedFiles.length})</button>
+                        {permissions.canDeleteFiles && (
+                          <button onClick={deleteSelectedFiles} style={{ background: '#ef4444', border: 'none', borderRadius: 6, padding: '6px 12px', color: 'white', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>🗑 Delete ({selectedFiles.length})</button>
+                        )}
                       </>
                     )}
                   </div>
