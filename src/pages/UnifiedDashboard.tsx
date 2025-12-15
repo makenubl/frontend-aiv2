@@ -60,16 +60,22 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
     loadApplications();
   }, [loadApplications]);
 
-  const evaluateApplication = async (appId: string) => {
+  const evaluateApplication = async (appId: string, forceRefresh: boolean = false) => {
     try {
       setEvaluating(true);
-      const result = await applicationsApi.evaluateApplication(appId);
+      const result = await applicationsApi.evaluateApplication(appId, forceRefresh);
       setEvaluation(result.evaluation);
       setShowEvalModal(true);
     } catch (err) {
       console.error('Error evaluating application:', err);
     } finally {
       setEvaluating(false);
+    }
+  };
+
+  const handleRefreshEvaluation = () => {
+    if (evaluation?.applicationId) {
+      evaluateApplication(evaluation.applicationId, true);
     }
   };
 
@@ -846,25 +852,61 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 'var(--space-lg)', marginBottom: 'var(--space-lg)' }}>
               <div>
                 <h2 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: 'var(--space-sm)' }}>
-                  AI Evaluation Report
+                  🤖 AI Evaluation Report
                 </h2>
-                <p style={{ color: 'var(--text-secondary)' }}>Application ID: {evaluation.applicationId}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+                  <p style={{ color: 'var(--text-secondary)' }}>Application ID: {evaluation.applicationId}</p>
+                  {(evaluation as any).modelUsed && (
+                    <span style={{
+                      background: 'linear-gradient(135deg, #6366f1, #22d3ee)',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontSize: '0.7rem',
+                      fontWeight: 600
+                    }}>
+                      {(evaluation as any).modelUsed}
+                    </span>
+                  )}
+                </div>
               </div>
-              <button 
-                type="button"
-                onClick={() => setShowEvalModal(false)}
-                style={{ 
-                  background: 'var(--glass-bg)', 
-                  border: '1px solid var(--glass-border)',
-                  padding: 'var(--space-sm)',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
-                  color: 'var(--text-primary)',
-                  fontSize: '1.5rem'
-                }}
-              >
-                ✕
-              </button>
+              <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                <button 
+                  type="button"
+                  onClick={handleRefreshEvaluation}
+                  disabled={evaluating}
+                  style={{ 
+                    background: 'linear-gradient(135deg, #6366f1, #22d3ee)', 
+                    border: 'none',
+                    padding: 'var(--space-sm) var(--space-md)',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: evaluating ? 'wait' : 'pointer',
+                    color: 'white',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    opacity: evaluating ? 0.7 : 1
+                  }}
+                >
+                  {evaluating ? '⏳ Evaluating...' : '🔄 Re-evaluate with GPT-5.1'}
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setShowEvalModal(false)}
+                  style={{ 
+                    background: 'var(--glass-bg)', 
+                    border: '1px solid var(--glass-border)',
+                    padding: 'var(--space-sm)',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)',
+                    fontSize: '1.5rem'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {/* Score Overview */}
@@ -1003,14 +1045,38 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
                 padding: 'var(--space-xl)',
                 borderRadius: 'var(--radius-lg)',
                 border: '1px solid var(--glass-border)',
-                marginBottom: 'var(--space-xl)'
+                marginBottom: 'var(--space-xl)',
+                maxHeight: '400px',
+                overflowY: 'auto'
               }}>
                 <h3 style={{ marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
-                  <FiTrendingUp /> AI Insights
+                  <FiTrendingUp /> 🤖 AI Regulatory Assessment
                 </h3>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: '1.8', whiteSpace: 'pre-wrap' }}>
-                  {evaluation.aiInsights}
-                </p>
+                <div style={{ color: 'var(--text-secondary)', lineHeight: '1.8', fontSize: '0.9rem' }}>
+                  {evaluation.aiInsights.split('\n').map((line, idx) => {
+                    // Style headers (lines starting with # or **)
+                    if (line.startsWith('**') || line.startsWith('##') || line.startsWith('# ')) {
+                      return <div key={idx} style={{ fontWeight: 700, marginTop: '1rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>{line.replace(/\*\*/g, '').replace(/##/g, '').replace(/# /g, '')}</div>;
+                    }
+                    // Style bullet points
+                    if (line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('*')) {
+                      return <div key={idx} style={{ paddingLeft: '1rem', marginBottom: '0.25rem' }}>{line}</div>;
+                    }
+                    // Style numbered items
+                    if (/^\d+\./.test(line.trim())) {
+                      return <div key={idx} style={{ paddingLeft: '0.5rem', marginBottom: '0.25rem', fontWeight: 500 }}>{line}</div>;
+                    }
+                    // Emoji headers
+                    if (/^[📊🏢⚠️📋📄🌍📝✅❌🇵🇰📈📌🤖🏛️⛔]/.test(line.trim())) {
+                      return <div key={idx} style={{ fontWeight: 600, marginTop: '0.75rem', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>{line}</div>;
+                    }
+                    // Empty lines
+                    if (!line.trim()) {
+                      return <div key={idx} style={{ height: '0.5rem' }}></div>;
+                    }
+                    return <div key={idx}>{line}</div>;
+                  })}
+                </div>
               </div>
             )}
 
