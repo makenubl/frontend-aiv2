@@ -110,4 +110,41 @@ export const applicationsApi = {
   }
 };
 
+// User Management API
+export interface UserData {
+  _id?: string;
+  username: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'evaluator' | 'reviewer';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const usersApi = {
+  // Get all users
+  async getUsers(): Promise<{ success: boolean; users: UserData[] }> {
+    const response = await api.get('/users');
+    return response.data;
+  },
+
+  // Create a new user
+  async createUser(user: { username: string; email: string; password: string; name: string; role: string }): Promise<{ success: boolean; user: UserData; message: string }> {
+    const response = await api.post('/users', user);
+    return response.data;
+  },
+
+  // Update a user
+  async updateUser(username: string, updates: Partial<{ email: string; password: string; name: string; role: string }>): Promise<{ success: boolean; user: UserData; message: string }> {
+    const response = await api.put(`/users/${encodeURIComponent(username)}`, updates);
+    return response.data;
+  },
+
+  // Delete a user
+  async deleteUser(username: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete(`/users/${encodeURIComponent(username)}`);
+    return response.data;
+  }
+};
+
 export default api;
