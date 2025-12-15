@@ -49,7 +49,7 @@ const DocumentChatPage: React.FC<DocumentChatPageProps> = ({ documentName, folde
             const recsText = recs.map((r: string, i: number) => `${i + 1}. ${r}`).join('\n');
             setChatMessages([{
               role: 'ai',
-              text: `I've analyzed **${documentName}** and found the following recommendations:\n\n${recsText}\n\nYou can ask me questions about these recommendations, request changes, or say "apply all" to generate an updated document.`,
+              text: `🏛️ **PVARA Regulatory Auditor**\n\nI've conducted an initial review of **${documentName}** and identified the following regulatory observations:\n\n${recsText}\n\n📋 **Next Steps:**\n- Ask me to analyze specific sections for compliance gaps\n- Request a legal perspective on any clause\n- Say "apply all" to generate an updated compliant document\n- Ask about PVARA requirements, KYC/AML policies, or FATF guidelines`,
               timestamp: new Date()
             }]);
           }
@@ -57,7 +57,7 @@ const DocumentChatPage: React.FC<DocumentChatPageProps> = ({ documentName, folde
           // No recommendations yet - start fresh
           setChatMessages([{
             role: 'ai',
-            text: `I'm ready to help you with **${documentName}**. Ask me any questions about this document, or I can analyze it for recommendations.`,
+            text: `🏛️ **PVARA Regulatory Auditor**\n\nI'm ready to review **${documentName}** from a regulatory, legal, and policy perspective.\n\n📋 **I can help you with:**\n- Compliance gap analysis against PVARA requirements\n- Legal review of terms, clauses, and disclaimers\n- KYC/AML policy assessment\n- FATF guideline alignment check\n- Identify missing regulatory requirements\n\nAsk me to "review this document" or ask specific questions about compliance areas.`,
             timestamp: new Date()
           }]);
         }
@@ -65,7 +65,7 @@ const DocumentChatPage: React.FC<DocumentChatPageProps> = ({ documentName, folde
         console.error('Error loading recommendations:', err);
         setChatMessages([{
           role: 'ai',
-          text: `I'm ready to help you with **${documentName}**. What would you like to know?`,
+          text: `🏛️ **PVARA Regulatory Auditor**\n\nI'm ready to review **${documentName}**. Ask me to analyze this document for regulatory compliance, legal gaps, or policy alignment with PVARA requirements.`,
           timestamp: new Date()
         }]);
       }

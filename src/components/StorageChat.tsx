@@ -63,7 +63,7 @@ export const StorageChat: React.FC<StorageChatProps> = ({ folder, document }) =>
     {
       id: '1',
       type: 'bot',
-      content: 'Hello! I can help you manage recommendations. Try asking: "Apply all recommendations" or "What are my pending items?"',
+      content: `🏛️ Welcome! I'm your PVARA Regulatory Auditor Assistant. ${document ? `I'll review "${document}" from a regulatory, legal, and policy perspective. Ask me to analyze compliance, identify gaps, or provide recommendations.` : 'Select a document to review, or ask me about your current recommendations and compliance status.'}`,
       timestamp: new Date(),
     },
   ]);
@@ -113,8 +113,8 @@ export const StorageChat: React.FC<StorageChatProps> = ({ folder, document }) =>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <FiMessageSquare size={18} color="#22d3ee" />
         <div>
-          <div style={{ fontWeight: 700, color: '#e2e8f0' }}>Storage Assistant</div>
-          <div style={{ fontSize: 12, color: '#94a3b8' }}>Ask to apply pending recs or see what is left.</div>
+          <div style={{ fontWeight: 700, color: '#e2e8f0' }}>PVARA Regulatory Auditor</div>
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>Review documents from regulatory, legal & policy perspective</div>
         </div>
       </div>
 
