@@ -107,6 +107,34 @@ export const applicationsApi = {
   async refreshAllEvaluations(): Promise<{ success: boolean; message: string }> {
     const response = await api.post('/applications/refresh-all');
     return response.data;
+  },
+
+  // Evaluate application with custom context (document selection, regulatory frameworks, AI prompt)
+  async evaluateWithContext(
+    id: string, 
+    context: {
+      selectedFiles: string[];
+      documentCategories: Record<string, 'application-form' | 'regulation' | 'supporting' | 'ordinance'>;
+      regulatoryFrameworks: string[];
+      aiContextPrompt: string;
+    }
+  ): Promise<{ success: boolean; evaluation: ComprehensiveEvaluation }> {
+    const response = await api.post(`/applications/${id}/evaluate-with-context`, context);
+    return response.data;
+  },
+
+  // Evaluate application with full configuration (from EvaluationConfigPage)
+  async evaluateWithConfig(config: {
+    applicationId: string;
+    folder: string;
+    documents: Array<{ name: string; tag: string }>;
+    documentsByTag: Record<string, string[]>;
+    checklists: Array<{ id: string; name: string; items: string[] }>;
+    aiContext: string;
+    companyName: string;
+  }): Promise<{ success: boolean; evaluation: ComprehensiveEvaluation }> {
+    const response = await api.post(`/applications/${config.applicationId}/evaluate-with-config`, config);
+    return response.data;
   }
 };
 

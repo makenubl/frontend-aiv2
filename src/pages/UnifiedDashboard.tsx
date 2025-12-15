@@ -8,6 +8,7 @@ import {
 import StorageManagerV2 from '../components/StorageManagerV2';
 import DocumentChatPage from './DocumentChatPage';
 import SettingsPanel from '../components/SettingsPanel';
+import EvaluationConfigPage from './EvaluationConfigPage';
 import { applicationsApi, ApplicationFolder, ComprehensiveEvaluation } from '../services/applications.api';
 import { NOCCreationPanel } from '../components/NOCCreationPanel';
 import { usePermissions, getRoleDisplayName, getRoleBadgeColor } from '../hooks/usePermissions';
@@ -18,7 +19,7 @@ interface UnifiedDashboardProps {
   onLogout?: () => void;
 }
 
-type ActiveView = 'applications' | 'noc' | 'settings' | 'storage' | 'document-chat';
+type ActiveView = 'applications' | 'noc' | 'settings' | 'storage' | 'document-chat' | 'evaluation-config';
 
 interface DocumentChatState {
   documentName: string;
@@ -196,6 +197,21 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
               documentName={documentChatState.documentName}
               folderName={documentChatState.folderName}
               onBack={handleCloseDocumentChat}
+            />
+          );
+        }
+        return renderApplicationsView();
+      case 'evaluation-config':
+        if (selectedApp) {
+          return (
+            <EvaluationConfigPage
+              application={selectedApp}
+              onBack={() => setActiveView('applications')}
+              onEvaluationComplete={(evalResult) => {
+                setEvaluation(evalResult);
+                setShowEvalModal(true);
+                setActiveView('applications');
+              }}
             />
           );
         }
@@ -582,13 +598,13 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedApp(app);
-                  evaluateApplication(app.id);
+                  setActiveView('evaluation-config');
                 }}
-                disabled={evaluating || !permissions.canTriggerEvaluation}
-                title={permissions.canTriggerEvaluation ? 'Run AI evaluation' : 'You do not have permission to trigger evaluations'}
+                disabled={!permissions.canTriggerEvaluation}
+                title={permissions.canTriggerEvaluation ? 'Configure and run AI evaluation' : 'You do not have permission to trigger evaluations'}
                 style={{ opacity: permissions.canTriggerEvaluation ? 1 : 0.6 }}
               >
-                {permissions.canTriggerEvaluation ? <FiShield /> : <FiLock />} {evaluating ? 'Evaluating...' : 'AI Evaluation'}
+                {permissions.canTriggerEvaluation ? <FiShield /> : <FiLock />} Configure Evaluation
               </button>
               <button 
                 className="btn btn-secondary" 
