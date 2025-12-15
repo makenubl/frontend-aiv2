@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FiArrowLeft, FiFolder, FiFile, FiCheck, FiX, FiPlay, FiTag, FiBookOpen, FiFileText, FiClipboard, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
 import { storageApi } from '../services/api';
 import { applicationsApi, ComprehensiveEvaluation } from '../services/applications.api';
@@ -138,6 +138,7 @@ const EvaluationConfigPage: React.FC<EvaluationConfigPageProps> = ({ application
   const [evaluation, setEvaluation] = useState<ComprehensiveEvaluation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'documents' | 'checklists' | 'context' | 'preview' | 'results'>('documents');
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Load folders on mount
   useEffect(() => {
@@ -182,6 +183,12 @@ const EvaluationConfigPage: React.FC<EvaluationConfigPageProps> = ({ application
       loadFiles(selectedFolder);
     }
   }, [selectedFolder]);
+
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [activeTab]);
 
   // Smart tag guessing based on filename
   const guessDocumentTag = (fileName: string): DocumentTag => {
@@ -363,6 +370,7 @@ const EvaluationConfigPage: React.FC<EvaluationConfigPageProps> = ({ application
             </div>
           </div>
           <button 
+            type="button"
             onClick={() => setActiveTab('preview')} 
             disabled={selectedCount === 0}
             style={{ 
@@ -405,6 +413,7 @@ const EvaluationConfigPage: React.FC<EvaluationConfigPageProps> = ({ application
           { id: 'results', label: '📊 Results', badge: evaluation ? '✓' : null, desc: 'Assessment' },
         ].map(tab => (
           <button
+            type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             style={{
@@ -441,7 +450,7 @@ const EvaluationConfigPage: React.FC<EvaluationConfigPageProps> = ({ application
       </div>
 
       {/* Tab Content */}
-      <div style={{ flex: 1, overflow: 'auto', padding: 32 }}>
+      <div ref={contentRef} style={{ flex: 1, overflow: 'auto', padding: 32 }}>
         {activeTab === 'documents' && (
           <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 24, height: '100%' }}>
             {/* Folder Selection */}

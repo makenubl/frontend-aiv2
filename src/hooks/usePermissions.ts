@@ -3,37 +3,41 @@ import { useAuthStore } from '../store/auth.store';
 
 export type UserRole = 'admin' | 'evaluator' | 'reviewer';
 
+const ALL_ROLES: readonly UserRole[] = ['admin', 'evaluator', 'reviewer'] as const;
+const ADMIN_AND_EVALUATOR_ROLES: readonly UserRole[] = ['admin', 'evaluator'] as const;
+const ADMIN_ONLY_ROLES: readonly UserRole[] = ['admin'] as const;
+
 // Mirror of backend permissions
 export const PERMISSIONS: Record<string, readonly UserRole[]> = {
   // Applications
-  'applications:view': ['admin', 'evaluator', 'reviewer'],
-  'applications:upload': ['admin', 'evaluator'],
-  'applications:delete': ['admin'],
+  'applications:view': ALL_ROLES,
+  'applications:upload': ADMIN_AND_EVALUATOR_ROLES,
+  'applications:delete': ADMIN_ONLY_ROLES,
   
   // AI Evaluation
-  'evaluation:view': ['admin', 'evaluator', 'reviewer'],
-  'evaluation:trigger': ['admin', 'evaluator'],
-  'evaluation:refresh': ['admin', 'evaluator'],
+  'evaluation:view': ALL_ROLES,
+  'evaluation:trigger': ADMIN_AND_EVALUATOR_ROLES,
+  'evaluation:refresh': ADMIN_AND_EVALUATOR_ROLES,
   
   // Storage Manager
-  'storage:view': ['admin', 'evaluator', 'reviewer'],
-  'storage:upload': ['admin', 'evaluator'],
-  'storage:delete': ['admin'],
+  'storage:view': ALL_ROLES,
+  'storage:upload': ADMIN_AND_EVALUATOR_ROLES,
+  'storage:delete': ADMIN_ONLY_ROLES,
   
   // Chat/AI Assistant
-  'chat:access': ['admin', 'evaluator', 'reviewer'],
+  'chat:access': ALL_ROLES,
   
   // Recommendations
-  'recommendations:view': ['admin', 'evaluator', 'reviewer'],
-  'recommendations:modify': ['admin', 'evaluator'],
+  'recommendations:view': ALL_ROLES,
+  'recommendations:modify': ADMIN_AND_EVALUATOR_ROLES,
   
   // NOC Creation
-  'noc:view': ['admin', 'evaluator', 'reviewer'],
-  'noc:create': ['admin', 'evaluator'],
+  'noc:view': ALL_ROLES,
+  'noc:create': ADMIN_AND_EVALUATOR_ROLES,
   
   // Settings
-  'settings:access': ['admin'],
-  'users:manage': ['admin'],
+  'settings:access': ADMIN_ONLY_ROLES,
+  'users:manage': ADMIN_ONLY_ROLES,
 };
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -55,9 +59,11 @@ export function usePermissions() {
   const role = (user?.role || 'reviewer') as UserRole;
 
   const permissions = useMemo(() => {
+    const isAdminRole = role === 'admin';
+    
     return {
       role,
-      isAdmin: role === 'admin',
+      isAdmin: isAdminRole,
       isEvaluator: role === 'evaluator',
       isReviewer: role === 'reviewer',
       

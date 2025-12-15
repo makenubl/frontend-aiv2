@@ -166,6 +166,8 @@
   filter: blur(100px);
   opacity: 0.4;
   animation: floatingGlow 20s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
 }
 
 .app-container::before {
@@ -1430,4 +1432,27 @@
 .btn-secondary:hover {
   background: rgba(255,255,255,0.18);
   color: var(--text-primary);
+}
+/* ================================
+   GLOBAL POINTER-EVENTS FIX
+   Ensure all decorative pseudo-elements
+   don't block clicks (Windows Chrome fix)
+   ================================ */
+*::before,
+*::after {
+  pointer-events: none !important;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+[role="button"],
+.btn,
+.btn-primary,
+.btn-secondary,
+.app-card,
+.menu-item {
+  pointer-events: auto !important;
 }
