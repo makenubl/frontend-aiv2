@@ -1,35 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { storageApi } from '../services/api';
-import StorageChat from './StorageChat';
-
-// CSS keyframes for typing animation
-const typingAnimationStyles = `
-@keyframes pulse {
-  0%, 80%, 100% {
-    opacity: 0.3;
-    transform: scale(0.8);
-  }
-  40% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-`;
 
 interface RecommendationItem {
   id: string;
   point: string;
   status: 'pending' | 'accepted' | 'rejected';
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 interface TrailEntry {
   documentName: string;
   version: number;
   recommendations: RecommendationItem[];
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 interface StorageManagerV2Props {
@@ -39,60 +20,41 @@ interface StorageManagerV2Props {
 const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat }) => {
   const [folders, setFolders] = useState<string[]>([]);
   const [selectedFolder, setSelectedFolder] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
   const [trail, setTrail] = useState<TrailEntry[]>([]);
-  const [selectedDoc, setSelectedDoc] = useState('');
-  const [selection, setSelection] = useState<Record<string, Record<string, boolean>>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [filesInFolder, setFilesInFolder] = useState<string[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const refreshFolders = async () => {
     const { data } = await storageApi.listFolders();
     setFolders(data.folders || []);
   };
 
-  const refreshTrail = async () => {
-    if (!selectedFolder) return;
-    const { data } = await storageApi.listRecommendations(selectedFolder, selectedDoc || undefined);
-    setTrail(data.trail || []);
-  };
-
   const refreshFiles = async () => {
-    if (!selectedFolder) {
-      setFilesInFolder([]);
-      return;
-    }
+    if (!selectedFolder) { setFilesInFolder([]); return; }
     const { data } = await storageApi.listFiles(selectedFolder);
     setFilesInFolder(data.files || []);
   };
 
-  useEffect(() => {
-    refreshFolders();
-  }, []);
+  const refreshTrail = async () => {
+    if (!selectedFolder) return;
+    const { data } = await storageApi.listRecommendations(selectedFolder);
+    setTrail(data.trail || []);
+  };
+
+  useEffect(() => { refreshFolders(); }, []);
 
   useEffect(() => {
-    if (!selectedFolder) {
-      setTrail([]);
-      setFilesInFolder([]);
-      setLoadingData(false);
-      return;
-    }
-    let cancelled = false;
+    if (!selectedFolder) { setTrail([]); setFilesInFolder([]); setSelectedFiles([]); return; }
     setLoadingData(true);
-    Promise.all([refreshFiles(), refreshTrail()])
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) {
-          setLoadingData(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedFolder, selectedDoc]);
+    Promise.all([refreshFiles(), refreshTrail()]).finally(() => setLoadingData(false));
+  }, [selectedFolder]);
 
   useEffect(() => {
     if (statusMessage) {
@@ -101,881 +63,326 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
     }
   }, [statusMessage]);
 
-  const onCreateFolder = async () => {
-    const name = window.prompt('Folder name');
-    if (!name) return;
-    try {
-      await storageApi.createFolder(name);
-      await refreshFolders();
-      setSelectedFolder(name);
-      setStatusMessage({ text: `Folder "${name}" created`, type: 'success' });
-    } catch (e: any) {
-      const errorMsg = e?.response?.data?.error || e?.message || 'Failed to create folder';
-      console.error('Create folder error:', e);
-      setStatusMessage({ text: errorMsg, type: 'error' });
-    }
-  };
-
-  const onDeleteFolder = async () => {
-    if (!selectedFolder) return;
-    const ok = window.confirm(`Delete folder "${selectedFolder}" and its contents?`);
-    if (!ok) return;
-    const folderName = selectedFolder;
-    try {
-      await storageApi.deleteFolder(selectedFolder);
-      setSelectedFolder('');
-      setTrail([]);
-      await refreshFolders();
-      setStatusMessage({ text: `Folder "${folderName}" deleted`, type: 'success' });
-    } catch (e: any) {
-      const errorMsg = e?.response?.data?.error || e?.message || 'Failed to delete folder';
-      console.error('Delete error:', e);
-      setStatusMessage({ text: errorMsg, type: 'error' });
-    }
-  };
-
   const onUpload = async () => {
-    if (!selectedFolder || !filesToUpload.length) {
-      setStatusMessage({ text: 'Please select a folder and choose files', type: 'error' });
-      return;
-    }
+    if (!selectedFolder || !filesToUpload.length) return;
     try {
       setUploading(true);
-      setLoadingData(true);
-      const response = await storageApi.uploadToFolder(selectedFolder, filesToUpload);
+      await storageApi.uploadToFolder(selectedFolder, filesToUpload);
       setFilesToUpload([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
       await Promise.all([refreshTrail(), refreshFiles()]);
-      const message = response.data?.message || 'Upload complete';
-      setStatusMessage({ text: message, type: 'success' });
+      setStatusMessage({ text: `${filesToUpload.length} file(s) uploaded`, type: 'success' });
     } catch (e: any) {
-      const errorMsg = e?.response?.data?.error || e?.message || 'Upload failed';
-      console.error('Upload error:', e);
-      setStatusMessage({ text: errorMsg, type: 'error' });
+      setStatusMessage({ text: e?.response?.data?.error || 'Upload failed', type: 'error' });
     } finally {
       setUploading(false);
-      setLoadingData(false);
     }
   };
 
-  const onAcceptReject = async (entry: TrailEntry) => {
-    const key = `${entry.documentName}:${entry.version}`;
-    const selected = selection[key] || {};
-    const chosenIds = Object.keys(selected).filter(id => selected[id]);
-    const pendingIds = entry.recommendations.filter(r => r.status === 'pending').map(r => r.id);
-    const effectiveIds = chosenIds.length ? chosenIds : pendingIds;
-    if (!effectiveIds.length) return;
+  const openChatWithDocument = (fileName: string) => {
+    if (onOpenDocumentChat) onOpenDocumentChat(fileName, selectedFolder);
+  };
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (selectedFolder) setIsDragging(true);
+  }, [selectedFolder]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (!selectedFolder) return;
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length) setFilesToUpload(prev => [...prev, ...files]);
+  }, [selectedFolder]);
+
+  const toggleFileSelection = (fileName: string) => {
+    setSelectedFiles(prev => prev.includes(fileName) ? prev.filter(f => f !== fileName) : [...prev, fileName]);
+  };
+
+  const selectAllFiles = () => {
+    setSelectedFiles(selectedFiles.length === filesInFolder.length ? [] : [...filesInFolder]);
+  };
+
+  const deleteSelectedFiles = async () => {
+    if (!selectedFiles.length || !window.confirm(`Delete ${selectedFiles.length} file(s)?`)) return;
     try {
-      await storageApi.decideRecommendations(selectedFolder, entry.documentName, entry.version, effectiveIds, []);
-      await refreshTrail();
-      setSelection(prev => ({ ...prev, [key]: {} }));
-      setStatusMessage({ text: 'Recommendations accepted', type: 'success' });
+      for (const fileName of selectedFiles) await storageApi.deleteFile(selectedFolder, fileName);
+      setSelectedFiles([]);
+      await refreshFiles();
+      setStatusMessage({ text: `${selectedFiles.length} file(s) deleted`, type: 'success' });
     } catch (e: any) {
-      const errorMsg = e?.response?.data?.error || e?.message || 'Failed to accept recommendations';
-      console.error('Accept error:', e);
-      setStatusMessage({ text: errorMsg, type: 'error' });
+      setStatusMessage({ text: 'Error deleting files', type: 'error' });
     }
   };
 
-  const onRejectSelected = async (entry: TrailEntry) => {
-    const key = `${entry.documentName}:${entry.version}`;
-    const selected = selection[key] || {};
-    const chosenIds = Object.keys(selected).filter(id => selected[id]);
-    if (!chosenIds.length) return;
-    try {
-      await storageApi.decideRecommendations(selectedFolder, entry.documentName, entry.version, [], chosenIds);
-      await refreshTrail();
-      setSelection(prev => ({ ...prev, [key]: {} }));
-      setStatusMessage({ text: 'Recommendations rejected', type: 'success' });
-    } catch (e: any) {
-      const errorMsg = e?.response?.data?.error || e?.message || 'Failed to reject recommendations';
-      console.error('Reject error:', e);
-      setStatusMessage({ text: errorMsg, type: 'error' });
+  const downloadSelectedFiles = async () => {
+    for (const fileName of selectedFiles) {
+      try {
+        const response = await storageApi.downloadFile(selectedFolder, fileName);
+        const blob = new Blob([response.data]);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fileName;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } catch (e) { console.error(e); }
     }
+    setStatusMessage({ text: `${selectedFiles.length} file(s) downloaded`, type: 'success' });
   };
 
-  const toggleSelect = (entry: TrailEntry, recId: string) => {
-    const key = `${entry.documentName}:${entry.version}`;
-    setSelection(prev => ({
-      ...prev,
-      [key]: { ...(prev[key] || {}), [recId]: !(prev[key]?.[recId]) }
-    }));
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') return '📕';
+    if (ext === 'doc' || ext === 'docx') return '📘';
+    if (ext === 'xls' || ext === 'xlsx') return '📊';
+    return '📄';
   };
 
-  // Open chat with document context - navigates to full page chat
-  const openChatWithDocument = async (entry: TrailEntry) => {
-    if (onOpenDocumentChat) {
-      onOpenDocumentChat(entry.documentName, selectedFolder);
-    }
-  };
-
-  const statusColor: Record<string, string> = {
-    pending: '#f59e0b',
-    accepted: '#22c55e',
-    rejected: '#ef4444'
-  };
+  const getFileRecommendations = (fileName: string) => trail.find(t => t.documentName === fileName)?.recommendations || [];
 
   return (
-    <>
-      {/* Inject animation styles */}
-      <style>{typingAnimationStyles}</style>
-      
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        background: '#0f172a',
-        color: '#e2e8f0',
-        overflow: 'hidden',
-        zIndex: 0
-      }}>
-        {/* Header - Fixed */}
-        <div style={{
-        padding: '16px 24px',
-        borderBottom: '1px solid #1f2937',
-        background: '#111827',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: 12,
-        flexShrink: 0,
-        zIndex: 100,
-        position: 'relative'
-      }}>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', background: '#0f172a', color: '#e2e8f0', overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{ padding: '16px 24px', borderBottom: '1px solid #1f2937', background: '#111827', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <div>
-          <div style={{ fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>Storage</div>
-          <h2 style={{ margin: '4px 0', fontSize: 20 }}>Folders, Files & AI Guidance</h2>
+          <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>Document Management</div>
+          <h2 style={{ margin: '4px 0', fontSize: 22, fontWeight: 600 }}>📂 Storage Manager</h2>
         </div>
+        <button onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')} style={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 6, padding: '8px 12px', color: '#e2e8f0', cursor: 'pointer', fontSize: 12 }}>
+          {viewMode === 'grid' ? '📋 List View' : '⊞ Grid View'}
+        </button>
       </div>
 
-      {/* Main Content - Scrollable */}
-      <div style={{
-        flex: 1,
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 12,
-        padding: 12,
-        overflow: 'hidden'
-      }}>
-        {/* Left Panel: Upload & Files */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            background: '#111827',
-            border: '1px solid #1f2937',
-            borderRadius: 12,
-            padding: 12,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10
-          }}>
-            <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              Select Folder
-            </div>
-            
-            {/* Folder Dropdown */}
-            <select
-              value={selectedFolder}
-              onChange={(e) => setSelectedFolder(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid #374151',
-                background: '#0b1220',
-                color: '#e2e8f0',
-                fontSize: 13,
-                cursor: 'pointer',
-                outline: 'none'
-              }}
-            >
-              <option value="">-- Choose Folder --</option>
-              {folders.map(f => (
-                <option key={f} value={f}>{f}</option>
-              ))}
-            </select>
-
-            {/* Folder Management Buttons */}
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button
-                onClick={async () => {
-                  const name = prompt('New folder name:');
-                  if (!name) return;
-                  try {
-                    await storageApi.createFolder(name);
-                    await refreshFolders();
-                    setStatusMessage({ text: 'Folder created', type: 'success' });
-                  } catch (e: any) {
-                    setStatusMessage({ text: e.response?.data?.error || 'Error creating folder', type: 'error' });
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  background: '#22c55e',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: 12
-                }}
-              >
-                + New Folder
-              </button>
-              <button
-                onClick={async () => {
-                  if (!selectedFolder) {
-                    alert('Select a folder first');
-                    return;
-                  }
-                  if (!window.confirm(`Delete folder "${selectedFolder}"?`)) return;
-                  try {
-                    await storageApi.deleteFolder(selectedFolder);
-                    setSelectedFolder('');
-                    await refreshFolders();
-                    setStatusMessage({ text: 'Folder deleted', type: 'success' });
-                  } catch (e: any) {
-                    setStatusMessage({ text: e.response?.data?.error || 'Error deleting folder', type: 'error' });
-                  }
-                }}
-                disabled={!selectedFolder}
-                style={{
-                  flex: 1,
-                  background: selectedFolder ? '#ef4444' : '#374151',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px',
-                  borderRadius: 6,
-                  cursor: selectedFolder ? 'pointer' : 'not-allowed',
-                  fontWeight: 600,
-                  fontSize: 12,
-                  opacity: selectedFolder ? 1 : 0.5
-                }}
-              >
-                🗑 Delete Folder
-              </button>
-            </div>
-
-            <div style={{ borderTop: '1px solid #1f2937', paddingTop: 10, marginTop: 4 }}>
-              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-                Upload Files
-              </div>
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept=".pdf,.doc,.docx,.txt"
-              onChange={(e) => setFilesToUpload(Array.from(e.target.files || []))}
-              style={{ position: 'absolute', left: -9999, opacity: 0 }}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                background: '#1f2937',
-                color: '#e2e8f0',
-                border: '1px solid #374151',
-                padding: '12px',
-                borderRadius: 8,
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: 13,
-                transition: 'all 0.2s'
-              }}
-            >
-              📁 Choose Files
-            </button>
-            {filesToUpload.length > 0 && (
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                {filesToUpload.length} file(s): {filesToUpload.map(f => f.name).join(', ')}
-              </div>
-            )}
-            <button
-              onClick={onUpload}
-              disabled={!selectedFolder || !filesToUpload.length || uploading}
-              style={{
-                background: 'linear-gradient(135deg, #6366f1, #22d3ee)',
-                color: 'white',
-                border: 'none',
-                padding: '12px',
-                borderRadius: 8,
-                cursor: selectedFolder && filesToUpload.length && !uploading ? 'pointer' : 'not-allowed',
-                fontWeight: 600,
-                fontSize: 13,
-                opacity: selectedFolder && filesToUpload.length && !uploading ? 1 : 0.5,
-                transition: 'all 0.2s'
-              }}
-            >
-              {uploading ? 'Uploading...' : 'Upload'}
+      {/* Main Content */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 16, gap: 16 }}>
+        
+        {/* Folder Section */}
+        <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: 12, padding: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}>📁 Folders</div>
+            <button onClick={async () => {
+              const name = prompt('New folder name:');
+              if (!name) return;
+              try {
+                await storageApi.createFolder(name);
+                await refreshFolders();
+                setSelectedFolder(name);
+                setStatusMessage({ text: `Folder "${name}" created`, type: 'success' });
+              } catch (e: any) {
+                setStatusMessage({ text: e.response?.data?.error || 'Error', type: 'error' });
+              }
+            }} style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', borderRadius: 6, padding: '8px 16px', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 12 }}>
+              + New Folder
             </button>
           </div>
-
-          <div style={{
-            background: '#111827',
-            border: '1px solid #1f2937',
-            borderRadius: 12,
-            padding: 12,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            flex: 1,
-            overflow: 'hidden'
-          }}>
-            <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-              Files in Folder
-              {filesToUpload.length > 0 && <span style={{ color: '#22d3ee', marginLeft: 8, fontSize: 10 }}>(1 selected)</span>}
-            </div>
-            {!selectedFolder && <div style={{ color: '#94a3b8', fontSize: 13 }}>Select a folder</div>}
-            {selectedFolder && !filesInFolder.length && <div style={{ color: '#94a3b8', fontSize: 13 }}>No files yet</div>}
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {filesInFolder.map(f => {
-                const isSelected = filesToUpload.some(file => file.name === f);
-                return (
-                  <button
-                    key={f}
-                    onClick={() => {
-                      if (isSelected) {
-                        setFilesToUpload([]);
-                      } else {
-                        // Single file selection - replace any existing selection
-                        const newFile = new File([''], f, { type: 'application/octet-stream' });
-                        setFilesToUpload([newFile]);
-                      }
-                    }}
-                    style={{
-                      padding: '10px',
-                      background: isSelected ? '#0f766e' : '#0b1220',
-                      borderRadius: 6,
-                      border: isSelected ? '2px solid #22d3ee' : '1px solid #1f2937',
-                      fontSize: 12,
-                      color: isSelected ? '#22d3ee' : '#e2e8f0',
-                      wordBreak: 'break-word',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      fontWeight: isSelected ? 600 : 400
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = '#22d3ee';
-                        e.currentTarget.style.background = '#1f2937';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = '#1f2937';
-                        e.currentTarget.style.background = '#0b1220';
-                      }
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 14 }}>{isSelected ? '✓' : '○'}</span>
-                      <span style={{ flex: 1 }}>{f}</span>
-                    </div>
-                    {/* File Metadata - shown when selected */}
-                    {isSelected && (
-                      <div style={{ 
-                        marginTop: 12, 
-                        paddingTop: 12, 
-                        borderTop: '1px solid #1e3a5f',
-                        fontSize: 11,
-                        color: '#64748b',
-                        background: 'rgba(15, 23, 42, 0.5)',
-                        borderRadius: 8,
-                        padding: 12,
-                        marginLeft: -6,
-                        marginRight: -6
-                      }}>
-                        <div style={{ 
-                          fontSize: 10, 
-                          color: '#94a3b8', 
-                          textTransform: 'uppercase', 
-                          letterSpacing: 0.5, 
-                          marginBottom: 10,
-                          fontWeight: 600
-                        }}>
-                          Document Info
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                          <div style={{ 
-                            background: 'rgba(30, 41, 59, 0.5)', 
-                            padding: '8px 10px', 
-                            borderRadius: 6,
-                            border: '1px solid #1e293b'
-                          }}>
-                            <div style={{ fontSize: 9, color: '#64748b', marginBottom: 2 }}>📅 Created</div>
-                            <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 500 }}>{new Date().toLocaleDateString('en-GB')}</div>
-                          </div>
-                          <div style={{ 
-                            background: 'rgba(30, 41, 59, 0.5)', 
-                            padding: '8px 10px', 
-                            borderRadius: 6,
-                            border: '1px solid #1e293b'
-                          }}>
-                            <div style={{ fontSize: 9, color: '#64748b', marginBottom: 2 }}>📝 Modified</div>
-                            <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 500 }}>{new Date().toLocaleDateString('en-GB')}</div>
-                          </div>
-                          <div style={{ 
-                            background: 'rgba(30, 41, 59, 0.5)', 
-                            padding: '8px 10px', 
-                            borderRadius: 6,
-                            border: '1px solid #1e293b'
-                          }}>
-                            <div style={{ fontSize: 9, color: '#64748b', marginBottom: 2 }}>👤 Owner</div>
-                            <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 500 }}>System</div>
-                          </div>
-                          <div style={{ 
-                            background: 'rgba(30, 41, 59, 0.5)', 
-                            padding: '8px 10px', 
-                            borderRadius: 6,
-                            border: '1px solid #1e293b'
-                          }}>
-                            <div style={{ fontSize: 9, color: '#64748b', marginBottom: 2 }}>📊 Status</div>
-                            <div style={{ 
-                              fontSize: 11, 
-                              color: '#22c55e', 
-                              fontWeight: 600,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4
-                            }}>
-                              <span style={{ 
-                                width: 6, 
-                                height: 6, 
-                                borderRadius: '50%', 
-                                background: '#22c55e',
-                                display: 'inline-block'
-                              }}></span>
-                              Active
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            
-            {/* File Actions */}
-            {filesToUpload.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 8, borderTop: '1px solid #1f2937', position: 'relative', zIndex: 50 }}>
-                {/* Chat with Document Button - Full Width */}
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
+          
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {folders.length === 0 ? (
+              <div style={{ color: '#64748b', fontSize: 13, padding: '20px', width: '100%', textAlign: 'center' }}>No folders yet. Create one to get started!</div>
+            ) : folders.map(folder => (
+              <div key={folder} onClick={() => setSelectedFolder(folder)} style={{
+                background: selectedFolder === folder ? 'linear-gradient(135deg, #0f766e, #0d9488)' : '#0b1220',
+                border: selectedFolder === folder ? '2px solid #22d3ee' : '1px solid #1f2937',
+                borderRadius: 10, padding: '14px 20px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 10, minWidth: 160
+              }}>
+                <span style={{ fontSize: 24 }}>📁</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: selectedFolder === folder ? '#fff' : '#e2e8f0' }}>{folder}</div>
+                  <div style={{ fontSize: 10, color: selectedFolder === folder ? '#a7f3d0' : '#64748b' }}>{selectedFolder === folder ? '✓ Selected' : 'Click to open'}</div>
+                </div>
+                {selectedFolder === folder && (
+                  <button onClick={async (e) => {
                     e.stopPropagation();
-                    const fileName = filesToUpload[0]?.name || 'document';
-                    const minimalEntry: TrailEntry = {
-                      documentName: fileName,
-                      version: 1,
-                      recommendations: [],
-                      createdAt: new Date().toISOString()
-                    };
-                    openChatWithDocument(minimalEntry);
-                  }}
-                  style={{
-                    width: '100%',
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '14px 16px',
-                    color: 'white',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    zIndex: 100,
-                    position: 'relative',
-                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
-                  }}
-                >
-                  💬 Chat with Document
-                </button>
-                
-                {/* Download and Delete Row */}
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    onClick={async () => {
-                      const fileName = filesToUpload[0].name;
-                      try {
-                        const response = await storageApi.downloadFile(selectedFolder, fileName);
-                        const blob = new Blob([response.data]);
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = fileName;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        window.URL.revokeObjectURL(url);
-                        setStatusMessage({ text: 'File downloaded successfully', type: 'success' });
-                      } catch (e) {
-                        console.error('Download error:', e);
-                        setStatusMessage({ text: 'Error downloading file', type: 'error' });
-                      }
-                    }}
-                    style={{
-                      flex: 1,
-                      background: '#3b82f6',
-                      color: 'white',
-                      border: 'none',
-                      padding: '10px',
-                      borderRadius: 6,
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      fontSize: 12
-                    }}
-                  >
-                    ⬇ Download
-                  </button>
-                  <button
-                    onClick={async () => {
-                      const fileName = filesToUpload[0].name;
-                      if (!window.confirm(`Delete "${fileName}"?`)) return;
-                      try {
-                        await storageApi.deleteFile(selectedFolder, fileName);
-                        setFilesToUpload([]);
-                        await refreshFiles();
-                        setStatusMessage({ text: 'File deleted', type: 'success' });
-                      } catch (e: any) {
-                        setStatusMessage({ text: e.response?.data?.error || 'Error deleting file', type: 'error' });
-                      }
-                  }}
-                  style={{
-                    flex: 1,
-                    background: '#ef4444',
-                    color: 'white',
-                    border: 'none',
-                    padding: '10px',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    fontSize: 12
-                  }}
-                >
-                  🗑 Delete
-                </button>
-                </div>
+                    if (!window.confirm(`Delete folder "${folder}"?`)) return;
+                    try { await storageApi.deleteFolder(folder); setSelectedFolder(''); await refreshFolders(); setStatusMessage({ text: 'Folder deleted', type: 'success' }); }
+                    catch (e: any) { setStatusMessage({ text: 'Error', type: 'error' }); }
+                  }} style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', borderRadius: 4, padding: '4px 8px', color: '#ef4444', cursor: 'pointer', fontSize: 10, marginLeft: 'auto' }}>🗑</button>
+                )}
               </div>
-            )}
+            ))}
           </div>
         </div>
 
-        {/* Right Panel: Recommendations */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12
-        }}>
-          <div style={{
-            background: '#111827',
-            border: '1px solid #1f2937',
-            borderRadius: 12,
-            padding: 16,
-            minHeight: '600px',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            {!filesToUpload.length ? (
-              <div style={{ color: '#94a3b8', fontSize: 13, padding: '20px', textAlign: 'center' }}>
-                📁 Choose files in the Upload panel to view recommendations
+        {/* Upload & Files Section */}
+        {selectedFolder && (
+          <>
+            {/* Upload Area */}
+            <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} style={{
+              background: isDragging ? 'linear-gradient(135deg, rgba(34, 211, 238, 0.1), rgba(99, 102, 241, 0.1))' : '#111827',
+              border: isDragging ? '2px dashed #22d3ee' : '1px solid #1f2937', borderRadius: 12, padding: 20, textAlign: 'center', transition: 'all 0.2s'
+            }}>
+              <input ref={fileInputRef} type="file" multiple accept=".pdf,.doc,.docx,.txt,.xls,.xlsx" onChange={(e) => setFilesToUpload(prev => [...prev, ...Array.from(e.target.files || [])])} style={{ display: 'none' }} />
+              <div style={{ marginBottom: 12 }}><span style={{ fontSize: 32 }}>📤</span></div>
+              <div style={{ fontSize: 14, color: '#e2e8f0', marginBottom: 4 }}>Drag & drop files here or</div>
+              <button onClick={() => fileInputRef.current?.click()} style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none', borderRadius: 8, padding: '10px 24px', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 13, margin: '8px 0' }}>Browse Files</button>
+              <div style={{ fontSize: 11, color: '#64748b' }}>Supports: PDF, DOC, DOCX, TXT, XLS, XLSX</div>
+
+              {filesToUpload.length > 0 && (
+                <div style={{ marginTop: 16, padding: 12, background: '#0b1220', borderRadius: 8, textAlign: 'left' }}>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>📎 {filesToUpload.length} file(s) ready:</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {filesToUpload.map((file, idx) => (
+                      <div key={idx} style={{ background: '#1f2937', padding: '6px 10px', borderRadius: 6, fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {getFileIcon(file.name)} {file.name}
+                        <button onClick={() => setFilesToUpload(prev => prev.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 4px', fontSize: 12 }}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <button onClick={onUpload} disabled={uploading} style={{ flex: 1, background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', borderRadius: 6, padding: '10px', color: 'white', cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: 13, opacity: uploading ? 0.6 : 1 }}>
+                      {uploading ? '⏳ Uploading...' : `⬆ Upload ${filesToUpload.length} File(s)`}
+                    </button>
+                    <button onClick={() => setFilesToUpload([])} style={{ background: '#374151', border: 'none', borderRadius: 6, padding: '10px 16px', color: '#e2e8f0', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Clear</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Files Section */}
+            <div style={{ flex: 1, background: '#111827', border: '1px solid #1f2937', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600 }}>📄 Files in "{selectedFolder}"</div>
+                  <span style={{ background: '#1f2937', padding: '4px 10px', borderRadius: 12, fontSize: 11, color: '#22d3ee' }}>{filesInFolder.length} files</span>
+                </div>
+                {filesInFolder.length > 0 && (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={selectAllFiles} style={{ background: selectedFiles.length === filesInFolder.length ? '#0f766e' : '#1f2937', border: '1px solid #374151', borderRadius: 6, padding: '6px 12px', color: '#e2e8f0', cursor: 'pointer', fontSize: 11 }}>
+                      {selectedFiles.length === filesInFolder.length ? '☑ Deselect All' : '☐ Select All'}
+                    </button>
+                    {selectedFiles.length > 0 && (
+                      <>
+                        <button onClick={downloadSelectedFiles} style={{ background: '#3b82f6', border: 'none', borderRadius: 6, padding: '6px 12px', color: 'white', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>⬇ Download ({selectedFiles.length})</button>
+                        <button onClick={deleteSelectedFiles} style={{ background: '#ef4444', border: 'none', borderRadius: 6, padding: '6px 12px', color: 'white', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>🗑 Delete ({selectedFiles.length})</button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-            ) : (
-              <>
-                {/* Recommendations List View */}
-                <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  Recommendations
-                </div>
-                <div style={{ fontSize: 12, color: '#22d3ee', marginBottom: 8, fontWeight: 600 }}>
-                  Selected File: {filesToUpload.map(f => f.name).join(', ')}
-                </div>
 
-                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {trail.length === 0 ? (
-                    <div style={{ 
-                      color: '#94a3b8', 
-                      fontSize: 13, 
-                      padding: '20px', 
-                      textAlign: 'center',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flex: 1
-                    }}>
-                      <div style={{ marginBottom: 16 }}>No recommendations yet for selected file</div>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          // Create a minimal TrailEntry for chat
-                          const fileName = filesToUpload[0]?.name || 'document';
-                          const minimalEntry: TrailEntry = {
-                            documentName: fileName,
-                            version: 1,
-                            recommendations: [],
-                            createdAt: new Date().toISOString()
-                          };
-                          openChatWithDocument(minimalEntry);
-                        }}
-                        style={{
-                          background: 'linear-gradient(135deg, #22d3ee 0%, #0ea5e9 100%)',
-                          border: 'none',
-                          borderRadius: 8,
-                          padding: '14px 28px',
-                          color: '#0f172a',
-                          fontWeight: 600,
-                          fontSize: 14,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 8,
-                          boxShadow: '0 4px 12px rgba(34, 211, 238, 0.3)',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                          e.currentTarget.style.boxShadow = '0 6px 16px rgba(34, 211, 238, 0.4)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(34, 211, 238, 0.3)';
-                        }}
-                      >
-                        💬 Chat with Document
-                      </button>
-                    </div>
-                  ) : (
-                    trail.map((t) => (
-                    <div
-                      key={`${t.documentName}-${t.version}`}
-                      style={{
-                        background: '#0b1220',
-                        border: '1px solid #1e293b',
-                        borderRadius: 10,
-                        padding: 14,
-                        fontSize: 12,
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      {/* Document Header */}
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'flex-start',
-                        marginBottom: 10
-                      }}>
-                        <div>
-                          <div style={{ fontWeight: 600, color: '#e2e8f0', marginBottom: 4, fontSize: 13 }}>
-                            📄 {t.documentName}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#64748b' }}>
-                            Version {t.version} • {t.recommendations.length} recommendations
-                          </div>
-                        </div>
-                        <span style={{
-                          background: t.recommendations.some(r => r.status === 'pending') 
-                            ? 'linear-gradient(135deg, #f59e0b, #d97706)' 
-                            : 'linear-gradient(135deg, #22c55e, #16a34a)',
-                          color: 'white',
-                          padding: '4px 8px',
-                          borderRadius: 6,
-                          fontSize: 10,
-                          fontWeight: 600
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {filesInFolder.length === 0 ? (
+                  <div style={{ color: '#64748b', fontSize: 14, textAlign: 'center', padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 48 }}>📭</span>
+                    <div>No files in this folder yet</div>
+                    <div style={{ fontSize: 12 }}>Upload files using the area above</div>
+                  </div>
+                ) : viewMode === 'grid' ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+                    {filesInFolder.map(fileName => {
+                      const isSelected = selectedFiles.includes(fileName);
+                      const pendingCount = getFileRecommendations(fileName).filter(r => r.status === 'pending').length;
+                      return (
+                        <div key={fileName} onClick={() => toggleFileSelection(fileName)} style={{
+                          background: isSelected ? 'linear-gradient(135deg, #0f766e, #0d9488)' : '#0b1220',
+                          border: isSelected ? '2px solid #22d3ee' : '1px solid #1f2937', borderRadius: 10, padding: 14, cursor: 'pointer', transition: 'all 0.2s'
                         }}>
-                          {t.recommendations.filter(r => r.status === 'pending').length > 0 
-                            ? `${t.recommendations.filter(r => r.status === 'pending').length} Pending`
-                            : '✓ Reviewed'}
-                        </span>
-                      </div>
-
-                      {/* Document Trail Info */}
-                      <div style={{
-                        background: '#111827',
-                        borderRadius: 6,
-                        padding: 10,
-                        marginBottom: 10,
-                        fontSize: 11
-                      }}>
-                        <div style={{ color: '#94a3b8', marginBottom: 6 }}>
-                          <span style={{ color: '#22d3ee' }}>📅 Created:</span>{' '}
-                          {t.createdAt ? new Date(t.createdAt).toLocaleString() : 'Unknown'}
-                        </div>
-                        <div style={{ color: '#94a3b8', marginBottom: 6 }}>
-                          <span style={{ color: '#22d3ee' }}>✏️ Last Modified:</span>{' '}
-                          {t.updatedAt ? new Date(t.updatedAt).toLocaleString() : 'Not modified'}
-                        </div>
-                        <div style={{ color: '#94a3b8' }}>
-                          <span style={{ color: '#22d3ee' }}>👤 Owner:</span>{' '}
-                          PVARA System
-                        </div>
-                      </div>
-
-                      {/* Recommendations Summary */}
-                      {t.recommendations.length > 0 && (
-                        <div style={{
-                          background: '#111827',
-                          borderRadius: 6,
-                          padding: 10,
-                          marginBottom: 10,
-                          fontSize: 11,
-                          maxHeight: 80,
-                          overflowY: 'auto'
-                        }}>
-                          <div style={{ color: '#22d3ee', marginBottom: 6, fontWeight: 600 }}>
-                            📋 Summary:
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+                            <span style={{ fontSize: 28 }}>{getFileIcon(fileName)}</span>
+                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                              <div style={{ fontWeight: 600, fontSize: 12, color: '#e2e8f0', wordBreak: 'break-word', lineHeight: 1.3 }}>{fileName}</div>
+                              {pendingCount > 0 && <div style={{ fontSize: 10, color: '#f59e0b', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b' }}></span>{pendingCount} pending</div>}
+                            </div>
+                            <span style={{ fontSize: 16, color: isSelected ? '#22d3ee' : '#374151' }}>{isSelected ? '✓' : '○'}</span>
                           </div>
-                          <div style={{ color: '#94a3b8', lineHeight: 1.5 }}>
-                            {t.recommendations.slice(0, 2).map((r, idx) => (
-                              <div key={r.id} style={{ 
-                                marginBottom: 4,
-                                display: 'flex',
-                                alignItems: 'flex-start',
-                                gap: 6
-                              }}>
-                                <span style={{ 
-                                  color: r.status === 'pending' ? '#f59e0b' : r.status === 'accepted' ? '#22c55e' : '#ef4444',
-                                  fontSize: 10
-                                }}>●</span>
-                                <span style={{ flex: 1 }}>
-                                  {r.point.length > 60 ? r.point.substring(0, 60) + '...' : r.point}
-                                </span>
-                              </div>
-                            ))}
-                            {t.recommendations.length > 2 && (
-                              <div style={{ color: '#64748b', fontStyle: 'italic' }}>
-                                +{t.recommendations.length - 2} more...
-                              </div>
-                            )}
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={(e) => { e.stopPropagation(); openChatWithDocument(fileName); }} style={{ flex: 1, background: 'linear-gradient(135deg, #3b82f6, #06b6d4)', border: 'none', borderRadius: 6, padding: '8px', color: 'white', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>💬 Chat</button>
+                            <button onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                const response = await storageApi.downloadFile(selectedFolder, fileName);
+                                const blob = new Blob([response.data]);
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a'); a.href = url; a.download = fileName;
+                                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                                window.URL.revokeObjectURL(url);
+                              } catch (e) { setStatusMessage({ text: 'Download failed', type: 'error' }); }
+                            }} style={{ background: '#374151', border: 'none', borderRadius: 6, padding: '8px 12px', color: '#e2e8f0', cursor: 'pointer', fontSize: 11 }}>⬇</button>
                           </div>
                         </div>
-                      )}
-
-                      {/* Chat Button */}
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          openChatWithDocument(t);
-                        }}
-                        style={{
-                          width: '100%',
-                          background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
-                          border: 'none',
-                          borderRadius: 6,
-                          padding: '12px 16px',
-                          color: 'white',
-                          fontWeight: 600,
-                          fontSize: 13,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 8,
-                          position: 'relative',
-                          zIndex: 10,
-                          boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-1px)';
-                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.3)';
-                        }}
-                      >
-                        💬 Chat with Document
-                      </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 100px 100px 80px', gap: 12, padding: '8px 12px', background: '#1f2937', borderRadius: 6, fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>
+                      <div></div><div>Name</div><div>Status</div><div>Date</div><div>Actions</div>
                     </div>
-                  ))
-                  )}
-                </div>
-              </>
-            )}
+                    {filesInFolder.map(fileName => {
+                      const isSelected = selectedFiles.includes(fileName);
+                      const pendingCount = getFileRecommendations(fileName).filter(r => r.status === 'pending').length;
+                      return (
+                        <div key={fileName} onClick={() => toggleFileSelection(fileName)} style={{
+                          display: 'grid', gridTemplateColumns: '40px 1fr 100px 100px 80px', gap: 12, padding: '10px 12px',
+                          background: isSelected ? '#0f766e' : '#0b1220', border: isSelected ? '1px solid #22d3ee' : '1px solid transparent',
+                          borderRadius: 6, cursor: 'pointer', alignItems: 'center', transition: 'all 0.15s'
+                        }}>
+                          <span style={{ fontSize: 18, textAlign: 'center' }}>{getFileIcon(fileName)}</span>
+                          <div style={{ fontSize: 12, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</div>
+                          <div>
+                            {pendingCount > 0 
+                              ? <span style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b', padding: '3px 8px', borderRadius: 4, fontSize: 10 }}>{pendingCount} pending</span>
+                              : <span style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '3px 8px', borderRadius: 4, fontSize: 10 }}>✓ Ready</span>
+                            }
+                          </div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>{new Date().toLocaleDateString('en-GB')}</div>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button onClick={(e) => { e.stopPropagation(); openChatWithDocument(fileName); }} style={{ background: '#3b82f6', border: 'none', borderRadius: 4, padding: '4px 8px', color: 'white', cursor: 'pointer', fontSize: 10 }}>💬</button>
+                            <button onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                const response = await storageApi.downloadFile(selectedFolder, fileName);
+                                const blob = new Blob([response.data]);
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a'); a.href = url; a.download = fileName;
+                                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                                window.URL.revokeObjectURL(url);
+                              } catch (e) { setStatusMessage({ text: 'Download failed', type: 'error' }); }
+                            }} style={{ background: '#374151', border: 'none', borderRadius: 4, padding: '4px 8px', color: '#e2e8f0', cursor: 'pointer', fontSize: 10 }}>⬇</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Empty State */}
+        {!selectedFolder && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#64748b', gap: 16 }}>
+            <span style={{ fontSize: 64 }}>📁</span>
+            <div style={{ fontSize: 18, color: '#94a3b8' }}>Select a folder to view files</div>
+            <div style={{ fontSize: 13 }}>Or create a new folder to get started</div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Status Bar - Fixed */}
+      {/* Status Message */}
       {statusMessage && (
-        <div style={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-          padding: '12px 20px',
-          borderRadius: 8,
-          background: statusMessage.type === 'success' ? '#22c55e' : statusMessage.type === 'error' ? '#ef4444' : '#3b82f6',
-          color: 'white',
-          fontWeight: 600,
-          zIndex: 9999,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          fontSize: 13
-        }}>
+        <div style={{ position: 'fixed', bottom: 16, right: 16, padding: '12px 20px', borderRadius: 8, background: statusMessage.type === 'success' ? '#22c55e' : statusMessage.type === 'error' ? '#ef4444' : '#3b82f6', color: 'white', fontWeight: 600, zIndex: 9999, boxShadow: '0 4px 12px rgba(0,0,0,0.3)', fontSize: 13 }}>
           {statusMessage.text}
         </div>
       )}
 
-      {/* Loading Indicator - Fixed */}
+      {/* Loading */}
       {(loadingData || uploading) && (
-        <div style={{
-          position: 'fixed',
-          top: 80,
-          right: 16,
-          padding: '12px 16px',
-          borderRadius: 8,
-          background: 'rgba(15,23,42,0.9)',
-          border: '1px solid #1f2937',
-          color: '#e2e8f0',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          zIndex: 9998,
-          pointerEvents: 'none',
-          fontSize: 13
-        }}>
-          <div
-            style={{
-              width: 16,
-              height: 16,
-              border: '2px solid #1f2937',
-              borderTopColor: '#22d3ee',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite'
-            }}
-          />
+        <div style={{ position: 'fixed', top: 80, right: 16, padding: '12px 16px', borderRadius: 8, background: 'rgba(15,23,42,0.95)', border: '1px solid #1f2937', color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 10, zIndex: 9998, fontSize: 13 }}>
+          <div style={{ width: 16, height: 16, border: '2px solid #1f2937', borderTopColor: '#22d3ee', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
           {uploading ? 'Uploading...' : 'Loading...'}
         </div>
       )}
 
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-      </div>
-    </>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
   );
 };
 
