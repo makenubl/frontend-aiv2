@@ -35,18 +35,24 @@ export const ModernApplicationsDashboard: React.FC<ModernDashboardProps> = ({ on
     }
   };
 
-  const handleSelectApplication = async (app: ApplicationFolder) => {
+  const handleSelectApplication = async (app: ApplicationFolder, forceRefresh: boolean = false) => {
     setSelectedApp(app);
     setEvaluation(null);
     
     try {
       setEvaluating(true);
-      const result = await applicationsApi.evaluateApplication(app.id);
+      const result = await applicationsApi.evaluateApplication(app.id, forceRefresh);
       setEvaluation(result.evaluation);
     } catch (err) {
       console.error('Error evaluating application:', err);
     } finally {
       setEvaluating(false);
+    }
+  };
+
+  const handleRefreshEvaluation = () => {
+    if (selectedApp) {
+      handleSelectApplication(selectedApp, true);
     }
   };
 
@@ -227,11 +233,22 @@ export const ModernApplicationsDashboard: React.FC<ModernDashboardProps> = ({ on
             {evaluating ? (
               <div className="evaluation-loading card-glass">
                 <div className="loading-spinner-lg"></div>
-                <p className="text-sm font-medium">Performing AI Evaluation...</p>
-                <p className="text-xs text-secondary">Analyzing compliance, risk, and technical aspects</p>
+                <p className="text-sm font-medium">Performing AI Evaluation with GPT-5.1...</p>
+                <p className="text-xs text-secondary">Analyzing compliance, risk, regulatory requirements, and technical aspects</p>
               </div>
             ) : evaluation ? (
-              <ApplicationDetailView application={selectedApp} evaluation={evaluation} />
+              <>
+                <div className="evaluation-actions" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                  <button 
+                    onClick={handleRefreshEvaluation}
+                    className="btn btn-secondary btn-sm"
+                    title="Force re-evaluation with GPT-5.1"
+                  >
+                    <FiRefreshCw /> Re-evaluate with GPT-5.1
+                  </button>
+                </div>
+                <ApplicationDetailView application={selectedApp} evaluation={evaluation} />
+              </>
             ) : (
               <div className="no-evaluation card-glass">
                 <FiShield size={48} opacity={0.3} />

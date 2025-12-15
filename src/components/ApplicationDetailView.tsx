@@ -145,14 +145,39 @@ export const ApplicationDetailView: React.FC<Props> = ({ application, evaluation
       {/* AI Insights */}
       <div className="detail-section">
         <div className="section-header" onClick={() => toggleSection('aiInsights')}>
-          <h3 className="text-sm font-semibold">AI Insights</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h3 className="text-sm font-semibold">🤖 AI Regulatory Assessment</h3>
+            {evaluation.modelUsed && (
+              <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>
+                {evaluation.modelUsed}
+              </span>
+            )}
+          </div>
           {expandedSections.has('aiInsights') ? <FiChevronUp /> : <FiChevronDown />}
         </div>
         {expandedSections.has('aiInsights') && (
-          <div className="section-content card-glass">
-            <p className="text-xs" style={{whiteSpace: 'pre-line', lineHeight: 1.6}}>
-              {evaluation.aiInsights}
-            </p>
+          <div className="section-content card-glass" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+            <div className="text-xs ai-insights-content" style={{whiteSpace: 'pre-wrap', lineHeight: 1.7, fontFamily: 'inherit'}}>
+              {evaluation.aiInsights.split('\n').map((line, idx) => {
+                // Style headers (lines starting with # or **)
+                if (line.startsWith('**') || line.startsWith('##') || line.startsWith('# ')) {
+                  return <div key={idx} style={{ fontWeight: 700, marginTop: '1rem', marginBottom: '0.5rem', color: '#e2e8f0' }}>{line.replace(/\*\*/g, '').replace(/##/g, '').replace(/# /g, '')}</div>;
+                }
+                // Style bullet points
+                if (line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('*')) {
+                  return <div key={idx} style={{ paddingLeft: '1rem', marginBottom: '0.25rem' }}>{line}</div>;
+                }
+                // Style numbered items
+                if (/^\d+\./.test(line.trim())) {
+                  return <div key={idx} style={{ paddingLeft: '0.5rem', marginBottom: '0.25rem', fontWeight: 500 }}>{line}</div>;
+                }
+                // Empty lines
+                if (!line.trim()) {
+                  return <div key={idx} style={{ height: '0.5rem' }}></div>;
+                }
+                return <div key={idx}>{line}</div>;
+              })}
+            </div>
           </div>
         )}
       </div>

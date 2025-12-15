@@ -41,6 +41,7 @@ export interface ComprehensiveEvaluation {
   dueDiligenceChecks: any;
   aiInsights: string;
   aiDocumentCategories?: Array<{ name: string; category: string; subcategory: string; relevanceScore: number; notes: string }>;
+  modelUsed?: string;
   nextSteps: string[];
   conditions: string[];
   evaluatedAt: string;
@@ -59,9 +60,17 @@ export const applicationsApi = {
     return response.data;
   },
 
-  // Evaluate application
-  async evaluateApplication(id: string): Promise<{ success: boolean; evaluation: ComprehensiveEvaluation }> {
-    const response = await api.get(`/applications/${id}/evaluate`);
+  // Evaluate application (with optional refresh to force GPT-5.1 re-evaluation)
+  async evaluateApplication(id: string, refresh: boolean = false): Promise<{ success: boolean; evaluation: ComprehensiveEvaluation }> {
+    const response = await api.get(`/applications/${id}/evaluate`, {
+      params: refresh ? { refresh: 'true' } : {}
+    });
+    return response.data;
+  },
+
+  // Refresh all evaluations (clear all caches)
+  async refreshAllEvaluations(): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/applications/refresh-all');
     return response.data;
   }
 };
