@@ -38,6 +38,18 @@ export const PERMISSIONS: Record<string, readonly UserRole[]> = {
   // Settings
   'settings:access': ADMIN_ONLY_ROLES,
   'users:manage': ADMIN_ONLY_ROLES,
+  
+  // Project Tracker
+  'projects:view': ALL_ROLES,
+  'projects:manage': ADMIN_AND_EVALUATOR_ROLES,
+  'projects:delete': ADMIN_ONLY_ROLES,
+  'tasks:view': ALL_ROLES,
+  'tasks:manage': ADMIN_AND_EVALUATOR_ROLES,
+  'tasks:delete': ADMIN_ONLY_ROLES,
+  'vendors:view': ALL_ROLES,
+  'vendors:manage': ADMIN_ONLY_ROLES,
+  'audit:view': ALL_ROLES,
+  'audit:export': ADMIN_AND_EVALUATOR_ROLES,
 };
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -96,6 +108,18 @@ export function usePermissions() {
       // Settings
       canAccessSettings: hasPermission(role, 'settings:access'),
       canManageUsers: hasPermission(role, 'users:manage'),
+      
+      // Project Tracker
+      canViewProjects: hasPermission(role, 'projects:view'),
+      canManageProjects: hasPermission(role, 'projects:manage'),
+      canDeleteProjects: hasPermission(role, 'projects:delete'),
+      canViewTasks: hasPermission(role, 'tasks:view'),
+      canManageTasks: hasPermission(role, 'tasks:manage'),
+      canDeleteTasks: hasPermission(role, 'tasks:delete'),
+      canViewVendors: hasPermission(role, 'vendors:view'),
+      canManageVendors: hasPermission(role, 'vendors:manage'),
+      canViewAudit: hasPermission(role, 'audit:view'),
+      canExportAudit: hasPermission(role, 'audit:export'),
       
       // Helper function
       can: (permission: Permission) => hasPermission(role, permission),

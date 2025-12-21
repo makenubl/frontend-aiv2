@@ -1,6 +1,8 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
 import { UnifiedDashboard } from './pages/UnifiedDashboard';
+import VendorPortal from './pages/VendorPortal';
 import { useAuthStore } from './store/auth.store';
 import './styles/ultra-premium.css';
 import './styles/global.css';
@@ -26,16 +28,36 @@ function App() {
     }
   };
 
-  if (!isAuthenticated) {
-    console.info('🔓 Rendering login page');
-    return <LoginPage onLogin={handleLogin} />;
-  }
-
-  console.info('🏠 Rendering dashboard');
   return (
-    <div className="App">
-      <UnifiedDashboard onLogout={logout} />
-    </div>
+    <BrowserRouter>
+      <div className="App">
+        <Routes>
+          {/* Public Routes */}
+          <Route 
+            path="/login" 
+            element={
+              isAuthenticated 
+                ? <Navigate to="/" replace /> 
+                : <LoginPage onLogin={handleLogin} />
+            } 
+          />
+          
+          {/* Vendor Portal Routes */}
+          <Route path="/portal/*" element={<VendorPortal />} />
+          <Route path="/vendor-portal/*" element={<VendorPortal />} />
+          
+          {/* Main Dashboard (default protected route) */}
+          <Route 
+            path="/*" 
+            element={
+              isAuthenticated 
+                ? <UnifiedDashboard onLogout={logout} />
+                : <Navigate to="/login" replace />
+            } 
+          />
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
 

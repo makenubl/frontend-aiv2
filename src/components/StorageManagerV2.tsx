@@ -16,9 +16,10 @@ interface TrailEntry {
 
 interface StorageManagerV2Props {
   onOpenDocumentChat?: (documentName: string, folderName: string) => void;
+  onOpenProjectWizard?: () => void;
 }
 
-const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat }) => {
+const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat, onOpenProjectWizard }) => {
   const [folders, setFolders] = useState<string[]>([]);
   const [selectedFolder, setSelectedFolder] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -151,16 +152,39 @@ const StorageManagerV2: React.FC<StorageManagerV2Props> = ({ onOpenDocumentChat 
   const getFileRecommendations = (fileName: string) => trail.find(t => t.documentName === fileName)?.recommendations || [];
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', background: '#0f172a', color: '#e2e8f0', overflow: 'hidden' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#0f172a', color: '#e2e8f0', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{ padding: '16px 24px', borderBottom: '1px solid #1f2937', background: '#111827', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <div>
           <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>Document Management</div>
           <h2 style={{ margin: '4px 0', fontSize: 22, fontWeight: 600 }}>📂 Storage Manager</h2>
         </div>
-        <button onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')} style={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 6, padding: '8px 12px', color: '#e2e8f0', cursor: 'pointer', fontSize: 12 }}>
-          {viewMode === 'grid' ? '📋 List View' : '⊞ Grid View'}
-        </button>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <button 
+            onClick={() => onOpenProjectWizard?.()} 
+            style={{ 
+              background: 'linear-gradient(135deg, #667eea, #764ba2)', 
+              border: 'none', 
+              borderRadius: 8, 
+              padding: '10px 20px', 
+              color: 'white', 
+              cursor: 'pointer', 
+              fontWeight: 600, 
+              fontSize: 13,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <span style={{ fontSize: 16 }}>✨</span>
+            New Project Wizard
+          </button>
+          <button onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')} style={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 6, padding: '8px 12px', color: '#e2e8f0', cursor: 'pointer', fontSize: 12 }}>
+            {viewMode === 'grid' ? '📋 List View' : '⊞ Grid View'}
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}

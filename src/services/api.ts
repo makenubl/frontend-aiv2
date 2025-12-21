@@ -170,3 +170,6 @@ export const storageApi = {
     return `${API_BASE_URL}/storage/download?folder=${encodeURIComponent(folder)}&file=${encodeURIComponent(fileName)}`;
   },
 };
+
+// Export the upload client for file uploads (without Content-Type header)
+export { uploadClient };

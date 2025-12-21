@@ -3,12 +3,14 @@ import {
   FiHome, FiFileText, FiShield, FiFolder, 
   FiSettings, FiLogOut, FiMenu, FiX, FiBell,
   FiClock, FiTrendingUp,
-  FiGlobe, FiChevronDown, FiFile, FiLock
+  FiGlobe, FiChevronDown, FiFile, FiLock, FiList
 } from 'react-icons/fi';
 import StorageManagerV2 from '../components/StorageManagerV2';
 import DocumentChatPage from './DocumentChatPage';
 import SettingsPanel from '../components/SettingsPanel';
 import EvaluationConfigPage from './EvaluationConfigPage';
+import ProjectTrackerWizardPanel from '../components/ProjectTrackerWizardPanel';
+import ProjectManagementPanel from '../components/ProjectManagementPanel';
 import { applicationsApi, ApplicationFolder, ComprehensiveEvaluation } from '../services/applications.api';
 import { NOCCreationPanel } from '../components/NOCCreationPanel';
 import { usePermissions, getRoleDisplayName, getRoleBadgeColor } from '../hooks/usePermissions';
@@ -19,7 +21,7 @@ interface UnifiedDashboardProps {
   onLogout?: () => void;
 }
 
-type ActiveView = 'applications' | 'noc' | 'settings' | 'storage' | 'document-chat' | 'evaluation-config';
+type ActiveView = 'applications' | 'noc' | 'settings' | 'storage' | 'document-chat' | 'evaluation-config' | 'project-wizard' | 'project-management';
 
 interface DocumentChatState {
   documentName: string;
@@ -156,8 +158,11 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
     { id: 'applications', label: 'Applications', icon: <FiHome />, badge: stats.total, permission: 'applications:view' as const },
     { id: 'noc', label: 'No Objection Certificate', icon: <FiShield />, badge: stats.pending, permission: 'noc:view' as const },
     { id: 'storage', label: 'Storage & AI Chat', icon: <FiFolder />, badge: null, permission: 'storage:view' as const },
+    { id: 'project-management', label: 'Project Tracker', icon: <FiList />, badge: null, permission: 'projects:view' as const },
     { id: 'settings', label: 'Settings', icon: <FiSettings />, badge: null, permission: 'settings:access' as const },
   ].filter(item => permissions.can(item.permission));
+
+  console.log('Current user role:', permissions.role, 'Menu items:', menuItems.map(m => m.id));
 
   const handleOpenDocumentChat = (documentName: string, folderName: string) => {
     setDocumentChatState({ documentName, folderName });
@@ -186,8 +191,11 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
         );
       case 'storage':
         return (
-          <div style={{ position: 'absolute', inset: 0, paddingTop: '81px' }}>
-            <StorageManagerV2 onOpenDocumentChat={handleOpenDocumentChat} />
+          <div style={{ position: 'absolute', inset: 0, top: '81px', display: 'flex', flexDirection: 'column' }}>
+            <StorageManagerV2 
+              onOpenDocumentChat={handleOpenDocumentChat} 
+              onOpenProjectWizard={() => setActiveView('project-wizard')}
+            />
           </div>
         );
       case 'document-chat':
@@ -216,6 +224,18 @@ export const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({ onLogout }) 
           );
         }
         return renderApplicationsView();
+      case 'project-wizard':
+        return (
+          <div style={{ position: 'absolute', inset: 0, top: '81px', overflow: 'auto' }}>
+            <ProjectTrackerWizardPanel onBack={() => setActiveView('storage')} />
+          </div>
+        );
+      case 'project-management':
+        return (
+          <div style={{ position: 'absolute', inset: 0, top: '81px', overflow: 'auto' }}>
+            <ProjectManagementPanel onBack={() => setActiveView('applications')} />
+          </div>
+        );
       case 'settings':
         return renderSettingsView();
       default:
